@@ -1,92 +1,76 @@
-'use client'
-
+import React from 'react';
+import sampleDiagram from '@/public/images/sample-diagram.png'
 import LogoText from "@/components/LogoText";
-import React from "react";
+import SampleTabs from '@/public/images/sample-tabs.svg'
 import Image from "next/image";
 import FormInput from "@/components/FormInput";
-import { useQuery } from "@tanstack/react-query";
-const Page = () => {
+import Link from "next/link";
+import SocialButton from "@/components/SocialButton";
+import google from '@/public/images/icons/google.png'
+import github from '@/public/images/icons/github.png'
 
-  const fetchcountries = async () => {
-    const response = await fetch('https://restcountries.com/v3.1/all?fields=name')
-    return response.json()
-  }
+function Page(props) {
+    return (
+        <section className={'w-screen h-screen flex max-[1020px]:flex-col flex-row bg-white'}>
+            <div className={'max-[1020px]:w-full w-[40%] bg-blue_dark flex flex-col p-9 gap-3 relative'}>
+                <LogoText/>
 
-
-  const {data, isLoading} = useQuery({
-    queryFn: () => fetchcountries(),
-    queryKey: ['countries']
-  })
-
-  console.log(isLoading)
-
-  console.log(data)
-
-  // display all countries in a dropdown for the country select 
-
-  //display all countries, flag, and country code for the phone number
+                <Image src={SampleTabs.src} alt={'Erd vision'} width={200} height={200} layout={'responsive'} className={'w-auto'}/>
 
 
-  return (
-    <section className="w-screen h-screen flex flex-row bg-white">
-      <div className="w-[40%] bg-blue_dark h-screen flex flex-col p-9 gap-3">
-        <LogoText />
+                <h1 className="text-yellow_dark font-semibold  text-[2.2rem] leading-[1.2] mt-5 max-[450px]:text-[2.6rem]">
+                    Welcome back!
+                </h1>
+                <p className={'text-white text-sm'}>Every minute you spend in planning saves 10 minutes in execution; this gives you a 1,000 percent return on energy.</p>
+            </div>
 
-        <h1 className="text-yellow_dark font-semibold  text-[3.3rem] leading-[1.2] mt-5">
-          Start creating powerful database diagrams effortlessly.
-        </h1>
-        <p className="text-white text-sm flex-grow">
-          Unlock the power of seamless database visualization! Get started now
-          and effortlessly bring your database diagrams to life. Simplify
-          complex structures, enhance collaboration, and turn your ideas into
-          reality with our intuitive diagramming tools.
-        </p>
+            <div className={'max-[1020px]:w-full w-[60%] bg-white flex flex-col p-10 sm:p-16 md:p-32 justify-center'}>
+                <h1 className="text-black font-bold text-3xl">Login</h1>
+                <form className={'mt-5 w-full'}>
+                    <FormInput
+                        label="Email"
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        conClassName="mt-6"
+                    />
+                    <FormInput
+                        label="Password"
+                        type="password"
+                        placeholder=""
+                        name="password"
+                        conClassName="mt-6"
+                    />
 
-        <div className="w-full bg-[#1B263B] p-7 rounded-2xl flex flex-col mt-5">
-          <p className="text-white font-bold">What a relief!</p>
+                    <div className={'w-full flex items-end justify-end mt-5'}>
+                        <Link href={"/auth/password/reset"} className={'text-yellow_dark font-semibold'}>Forgot
+                            password?</Link>
+                    </div>
 
-          <p className="text-white mt-2">
-            It saved me so much time and made my designs look professional with
-            minimal effort!
-          </p>
+                    <input
+                        type="submit"
+                        value="Submit"
+                        className="w-full p-4 rounded-md mt-5 cursor-pointer bg-blue_dark text-white"
+                    />
 
-          <div className="flex flex-row items-center mt-5 gap-4">
-            <Image
-              alt=""
-              src="/images/avatar.png"
-              width={32}
-              height={32}
-              className="rounded-full bg-blue-400"
-            ></Image>
-            <p className="text-white font-bold">Grace Albert</p>
-          </div>
-        </div>
+                    <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
+                        <div className={'w-[60px] h-[1px] bg-[#D9D9D9]'}></div>
+                        <p className={'text-[#565656]'}>OR</p>
+                        <div className={'w-[60px] h-[1px] bg-[#D9D9D9]'}></div>
+                    </div>
 
-        <div className="flex flex-row items-center w-full justify-center gap-2">
-          {[1, 2, 3].map((index) => (
-            <div
-              key={`round-dot-${index}`}
-              className="w-2 h-2 bg-[#F0F0F0] rounded-full"
-            ></div>
-          ))}
-        </div>
-      </div>
+                    <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
+                        <SocialButton title={"Google"} image={google.src}/>
+                        <SocialButton title={"Github"} image={github.src}/>
+                    </div>
 
-      <div className="w-[60%] bg-white h-screen flex flex-col p-9">
-        <h1 className="text-black font-bold text-3xl">Sign up</h1>
-        <form action="" className="mt-5 w-full">
-          <div className="w-full flex flex-row items-center gap-5">
-            <FormInput label="First name" placeholder="First name" />
-            <FormInput label="Last name" placeholder="Last name" />
-          </div>
+                    <p className={'self-center justify-self-center mt-3'}>Dont have an account? <a
+                        href={'/auth/signup/'} className={'text-blue_dark font-bold'}>Signup</a></p>
 
-          <FormInput label="Email" type="email" placeholder="Enter your email" conClassName="mt-6"/>
-          <FormInput label="Password" type="password" placeholder="" conClassName="mt-6"/>
-
-        </form>
-      </div>
-    </section>
-  );
-};
+                </form>
+            </div>
+        </section>
+    );
+}
 
 export default Page;
