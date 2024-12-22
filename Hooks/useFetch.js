@@ -25,18 +25,6 @@ const useFetchRequest = (url, onSuccess, onError) => {
     isSuccess,
     isError,
   };
-
-  //   return (url, onSuccess, OnError) => {
-  //     const mutation = useMutation({});
-
-  //     const { mutate, isLoading, isSuccess, isError } = mutation;
-  //     return {
-  //       mutate,
-  //       isLoading,
-  //       isSuccess,
-  //       isError,
-  //     };
-  //   };
 };
 
 export default useFetchRequest;

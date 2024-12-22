@@ -13,6 +13,10 @@ import { LiaEdit } from "react-icons/lia";
 import { MdCenterFocusWeak } from "react-icons/md";
 import { FiMoreVertical } from "react-icons/fi";
 import { RiMoreFill } from "react-icons/ri";
+import FlowCanvas from "@/components/diagrams/FlowCanvas";
+import { useToast } from "@/hooks/use-toast";
+import { IoAdd, IoAddSharp } from "react-icons/io5";
+import AuthProtected from "@/components/user/AuthProtected";
 
 const Page = () => {
   const [scale, setScale] = useState(1); // For zooming
@@ -20,203 +24,182 @@ const Page = () => {
   const containerRef = useRef(null);
   const { id } = useParams();
   const [diagram, setDiagram] = useState(null);
+  const [error, setError] = useState(false);
 
-  const fitCenter = () => {
-    const container = containerRef.current;
+  const { toast } = useToast();
 
-    if (container) {
-      const content = container.firstChild; // Assuming the first child is the large div
-      if (content) {
-        // Calculate the center position
-        const scrollLeft = (content.offsetWidth - container.offsetWidth) / 2;
-        const scrollTop = (content.offsetHeight - container.offsetHeight) / 2;
-
-        // Set the scroll position
-        container.scrollLeft = scrollLeft;
-        container.scrollTop = scrollTop;
+  const detailUrl = `${baseBeUrl}/diagram/detail/${id}`;
+  const { mutate: fetchDiagram, isLoading: isFetchingDiagram } =
+    useFetchRequest(
+      detailUrl,
+      (response) => {
+        console.log(response);
+        setDiagram(response.data);
+      },
+      (error) => {
+        console.log("An error occured", error);
+        setError(true);
       }
-    }
-  };
-
-  // const detailUrl = `${baseBeUrl}/diagram/detail/${id}`;
-  // const { mutate: fetchDiagram, isLoading: isFetchingDiagram } =
-  //   useFetchRequest(
-  //     detailUrl,
-  //     (response) => {
-  //       console.log(response);
-  //       setDiagram(response.data);
-  //       fitCenter()
-  //     },
-  //     (error) => {}
-  //   );
-
-  const handleWheel = (e) => {
-    if (e.ctrlKey) {
-      // Prevent default scrolling when zooming
-      e.preventDefault();
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // Zoom in or out
-      setScale((prev) => Math.min(Math.max(prev * zoomFactor, 0.5), 3));
-    }
-    // If not pinching or using Ctrl, allow normal scrolling
-  };
-
-  const handleDrag = (e) => {
-    if (e.buttons !== 1) return; // Ensure left-click is pressed
-    setTranslate((prev) => ({
-      x: prev.x + e.movementX,
-      y: prev.y + e.movementY,
-    }));
-  };
-
-  // Center the section scroll position
-  useEffect(() => {
-    fitCenter();
-  }, []);
+    );
 
   useEffect(() => {
-    const container = containerRef.current;
-
-    // Attach the wheel event listener
-    container.addEventListener("wheel", handleWheel, { passive: false });
-
-    return () => {
-      // Cleanup the event listener
-      container.removeEventListener("wheel", handleWheel);
-    };
+    fetchDiagram();
   }, []);
 
-  useEffect(() => {
-    // fetchDiagram();
-  }, []);
+  if (isFetchingDiagram) {
+    return <PageLoader loaderSize={60} />;
+  }
 
-  // if (isFetchingDiagram) {
-  //   return <PageLoader />;
-  // }
+  if (error) {
+    return (
+      <section className="w-full min-h-screen flex items-center justify-center">
+        {/* TODO: make this finer */}
+        <p className="font-medium text-xl text-red-500">Error fetching diagram</p>
+      </section>
+    );
+  }
 
-  // if(!isFetchingDiagram && !diagram){
-  //   return <section className="w-full min-h-screen flex items-center justify-center">Diagram not found</section>
-  // }
+  const handleSyncChanges = () => {
+    console.log("syncinig");
+    toast({
+      title: "hello",
+      swipeDirection: "left",
+    });
+  };
 
   return (
-    <section className="w-full min-h-screen relative">
-      <section
-        ref={containerRef}
-        className="w-screen h-screen overflow-scroll bg-[#378db8] cursor-grab"
-        onMouseMove={handleDrag}
-      >
-        <div
-          className="w-[10000px] h-[10000px] flex items-center justify-center gap-2 bg-mgrey100 dot-grid-background"
-          style={{
-            transform: `scale(${scale}) translate(${translate.x}px, ${translate.y}px)`,
-          }}
+    <AuthProtected>
+      <section className="w-full min-h-screen relative flex flex-col">
+        <section
+          className=" w-screen h-[10vh] bg-green01 top-0 z-20 flex flex-row justify-between items-center px-6 py-2 "
+          id="diagram-header"
         >
-          <div className="w-24 h-24 bg-blue-500 rounded-lg shadow-lg text-white text-center flex items-center justify-center cursor-move flex-col">
-            <p>Box 1</p>
-            <p className="text-sm">A first text</p>
+          <LogoText
+            logoColor="#7ED6DF"
+            textClassName="text-green02 font-medium text-green01"
+          />
+
+          <div>
+            <h2 className="font-semibold text-sm text-white">
+              The peoples project
+            </h2>
+            <div className="flex flex-row items-center gap-2">
+              <p className="font-extralight text-sm text-mgrey100">
+                Saved 3 mins ago
+              </p>
+              <div className="w-[3px] h-[3px] bg-[#D9D9D9]"></div>
+              <p className="font-semibold text-green02 text-sm cursor-pointer">
+                Save
+              </p>
+            </div>
           </div>
-          <div className="w-24 h-24 bg-red-500 rounded-lg shadow-lg text-white text-center flex items-center justify-center cursor-pointer flex-col">
-            <p>Box 2</p>
-            <p className="text-sm">A second text</p>
-          </div>
-          <div className="w-[100px] h-[100px] bg-red-500 rounded-lg shadow-lg text-white text-center flex items-center justify-center cursor-pointer flex-col">
-            <p>Box 3</p>
-            <p className="text-sm">A third text</p>
-          </div>
-        </div>
-      </section>
 
-      <section className="absolute z-10 w-[350px] h-screen top-0 bg-white flex flex-row">
-        {/* <div className="w-[60px] h-screen bg-mgrey100"></div> */}
-        <div className="w-full bg-white flex flex-col mt-[70px] gap-2 overflow-scroll no-scrollbar">
-          {dummyTablesList.map((item) => {
-            return (
-              <div className="flex flex-col" key={item.name}>
-                <div className="p-2 flex flex-row items-center justify-between cursor-pointer bg-mgrey100 hover:bg-green02 transition-all">
-                  <div className="flex flex-row items-center gap-2">
-                    <IoIosArrowForward size={12} />
-                    <p className="text-[0.9rem] font-semibold text-green01">
-                      {item.name}
-                    </p>
-                  </div>
+          <button className="cursor-pointer flex flex-row items-center gap-2 bg-green01 p-3 rounded-md">
+            <FiUploadCloud color="#ffffff" />
+            <p className="text-[0.8rem] text-white" onClick={handleSyncChanges}>
+              Sync changes
+            </p>
+          </button>
+        </section>
 
-                  <p className="text-[0.7rem] font-extralight text-green01">
-                    2 cols
-                  </p>
+        <div className="w-full flex flex-row h-[90vh]">
+          <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
+            {/* <div className="w-[60px] h-screen bg-mgrey100"></div> */}
 
-                  <div className="flex flex-row items-center gap-4">
-                    <button>
-                      <LiaEdit />
-                    </button>
-                    <button>
-                      <MdCenterFocusWeak />
-                    </button>
-                    <button>
-                      <FiMoreVertical />
-                    </button>
-                  </div>
-                </div>
+            <div className="w-full bg-white flex flex-col overflow-scroll no-scrollbar">
+              <div className="w-full flex flex-row items-center justify-between p-2 text-[0.9rem] bg-[#CAF9FD]">
+                <p>(4) Tables</p>
 
-                <div className="w-full flex flex-col">
-                  {item.columns.map((column, index) => {
-                    return (
-                      <div className="w-full flex flex-row items-center justify-between p-2" key={column.name}>
-                        <div className="flex flex-row items-center gap-3">
-                          <div className="w-[9px] h-[9px] rounded-full border-[1.5px] border-[#EAEAEC]"></div>
-                          <input
-                            type="text"
-                            name=""
-                            id=""
-                            defaultValue={column.name}
-                            className="max-w-[90px] text-[0.8rem] p-[5px] border border-mgrey200 outline-green02 rounded-md"
-                          />
-                          <input
-                            type="text"
-                            defaultValue={column.datatype}
-                            className="max-w-[90px] text-[0.8rem] p-[5px] border rounded-md border-mgrey100 outline-green02"
-                          />
-                        </div>
-
-                        {
-                          index ===0 && <p className="text-blue01 text-[0.8rem] font-semibold">PK</p>
-                        }
-
-                        <div></div>
-                        <div className="cursor-pointer">
-                          <RiMoreFill/>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div
+                  className="p-1 hover:bg-green01 cursor-pointer transition-all ease-in-out rounded-sm"
+                  title="New table"
+                >
+                  <IoAdd size={20} className="hover:text-green02" />
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      <section
-        className="absolute w-screen h-[60px] bg-white top-0 z-20 flex flex-row justify-between items-center px-6 py-2"
-        id="diagram-header"
-      >
-        <LogoText logoColor="#000" textClassName="font-medium text-green01" />
+              <div className="flex flex-col gap-2 overflow-scroll no-scrollbar">
+                {dummyTablesList.map((item) => {
+                  return (
+                    <div className="flex flex-col" key={item.name}>
+                      <div className="p-2 flex flex-row items-center justify-between cursor-pointer bg-[#F8FAFF] hover:bg-mgrey100 transition-all">
+                        <div className="flex flex-row items-center gap-2">
+                          <IoIosArrowForward size={12} />
 
-        <div>
-          <h2 className="font-semibold text-sm">The peoples project</h2>
-          <div className="flex flex-row items-center gap-2">
-            <p className="font-extralight text-sm">Saved 3 mins ago</p>
-            <div className="w-[3px] h-[3px] bg-[#D9D9D9]"></div>
-            <p className="font-semibold text-blue01 text-sm cursor-pointer">
-              Save
-            </p>
+                          <div className="flex flex-col">
+                            <p className="text-[0.9rem] font-medium text-green-900">
+                              {item.name}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-[0.7rem] font-extralight text-green01">
+                          2 cols
+                        </p>
+                      </div>
+
+                      <div className="w-full flex flex-col hidden">
+                        {item.columns.map((column, index) => {
+                          return (
+                            <div
+                              className="w-full flex flex-row items-center justify-between p-2"
+                              key={column.name}
+                            >
+                              <div className="flex flex-row items-center gap-3">
+                                <div className="w-[9px] h-[9px] rounded-full border-[1.5px] border-[#EAEAEC]"></div>
+                                <input
+                                  type="text"
+                                  name=""
+                                  id=""
+                                  defaultValue={column.name}
+                                  className="max-w-[90px] text-[0.8rem] p-[5px] border border-mgrey200 outline-green02 rounded-md"
+                                />
+                                <input
+                                  type="text"
+                                  defaultValue={column.datatype}
+                                  className="max-w-[90px] text-[0.8rem] p-[5px] border rounded-md border-mgrey100 outline-green02"
+                                />
+                              </div>
+
+                              <div
+                                className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
+                                title="Primary key"
+                              >
+                                <p className="text-blue01 text-[0.8rem] font-semibold">
+                                  PK
+                                </p>
+                              </div>
+
+                              <div
+                                className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
+                                title="Nullable"
+                              >
+                                <p className="text-[#474747] font-semibold text-[0.8rem]">
+                                  N
+                                </p>
+                              </div>
+
+                              <div></div>
+                              <div className="cursor-pointer">
+                                <RiMoreFill />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <div className="w-[80%] h-full">
+            <FlowCanvas />
           </div>
         </div>
-
-        <button className="cursor-pointer flex flex-row items-center gap-2 bg-green01 p-3 rounded-md">
-          <FiUploadCloud color="#ffffff" />
-          <p className="text-[0.8rem] text-white">Sync changes</p>
-        </button>
       </section>
-    </section>
+    </AuthProtected>
   );
 };
 
