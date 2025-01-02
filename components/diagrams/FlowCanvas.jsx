@@ -6,7 +6,7 @@ import {
   addEdge,
   MiniMap,
   Controls,
-  Background
+  Background,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
@@ -23,7 +23,7 @@ const nodeTypes = {
 
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
-const FlowCanvas = () => {
+const FlowCanvas = ({ diagram, tables, columns }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [bgColor, setBgColor] = useState(initBgColor);
@@ -51,75 +51,105 @@ const FlowCanvas = () => {
       );
     };
 
-    setNodes([
-      {
-        id: "1",
-        type: "input",
-        data: { label: "An input node" },
-        position: { x: 0, y: 50 },
-        sourcePosition: "right",
-      },
-      {
-        id: "2",
-        type: "selectorNode",
-        data: { onChange: onChange, color: initBgColor },
-        position: { x: 300, y: 50 },
-      },
-      {
-        id: "5",
-        type: "tableNode",
-        data: { onChange: onChange, color: initBgColor, label:"Accounts" },
-        position: { x: 500, y: 50 },
-      },
-      {
-        id: "3",
-        type: "output",
-        data: { label: "Output A" },
-        position: { x: 650, y: 25 },
-        targetPosition: "left",
-      },
-      {
-        id: "4",
-        type: "output",
-        data: { label: "Output B" },
-        position: { x: 650, y: 100 },
-        targetPosition: "left",
-      },
-    ]);
+    //setting the initial database tables
+    setNodes(
+      tables?.map((table, index) => {
+        console.log("table", table);
+        return {
+          id: `${table.id}`,
+          type: "tableNode",
+          position: { x: table.x_position, y: table.y_position },
+          data: {
+            onChange: onChange,
+            color: initBgColor,
+            label: table.name,
+            columns: columns.filter((column) => column.table_id === table.id),
+          },
+        };
+      }) || []
+    );
 
-    setEdges([
-      {
-        id: "e1-2",
-        source: "1",
-        target: "2",
-        type: "smoothstep",
-        // animated: true,
-      },
-      {
-        id: "e2a-3",
-        source: "2",
-        target: "3",
-        sourceHandle: "a",
-        type: "smoothstep",
+    // setNodes([
+    //   {
+    //     id: "1",
+    //     type: "input",
+    //     data: { label: "An input node" },
+    //     position: { x: 0, y: 50 },
+    //     sourcePosition: "right",
+    //   },
+    //   {
+    //     id: "2",
+    //     type: "selectorNode",
+    //     data: { onChange: onChange, color: initBgColor },
+    //     position: { x: 300, y: 50 },
+    //   },
+    //   {
+    //     id: "5",
+    //     type: "tableNode",
+    //     data: { onChange: onChange, color: initBgColor, label:"Accounts" },
+    //     position: { x: 500, y: 50 },
+    //   },
+    //   {
+    //     id: "3",
+    //     type: "output",
+    //     data: { label: "Output A" },
+    //     position: { x: 650, y: 25 },
+    //     targetPosition: "left",
+    //   },
+    //   {
+    //     id: "4",
+    //     type: "output",
+    //     data: { label: "Output B" },
+    //     position: { x: 650, y: 100 },
+    //     targetPosition: "left",
+    //   },
+    // ]);
 
-        // animated: true,
-      },
-      {
-        id: "e2b-4",
-        source: "2",
-        target: "4",
-        sourceHandle: "b",
-        type: "smoothstep",
+    // setEdges([
+    //   {
+    //     id: "e1-2",
+    //     source: "1",
+    //     target: "2",
+    //     type: "smoothstep",
+    //     // animated: true,
+    //   },
+    //   {
+    //     id: "e2a-3",
+    //     source: "2",
+    //     target: "3",
+    //     sourceHandle: "a",
+    //     type: "smoothstep",
 
-        // animated: true,
-      },
-    ]);
-  }, []);
+    //     // animated: true,
+    //   },
+    //   {
+    //     id: "e2b-4",
+    //     source: "2",
+    //     target: "4",
+    //     sourceHandle: "b",
+    //     type: "smoothstep",
+
+    //     // animated: true,
+    //   },
+    // ]);
+  }, [tables]);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ ...params, animated: false, type: "smoothstep" }, eds)),
+    (params) =>
+      setEdges((eds) =>
+        addEdge({ ...params, animated: false, type: "smoothstep" }, eds)
+      ),
     []
   );
+
+  const handleNodeDragStop = (event, node) => {
+    const dbTable = tables.find((table) => table.id == node.id);
+    if (dbTable){
+      dbTable.x_position = node.position.x;
+      dbTable.y_position = node.position.y;
+      dbTable.syncObject()
+    };
+  };
 
   return (
     <section className="w-full h-full">
@@ -129,13 +159,12 @@ const FlowCanvas = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        // style={{ background: bgColor }}
-        // className="dot-grid-background"
         nodeTypes={nodeTypes}
         snapToGrid={true}
         snapGrid={snapGrid}
         defaultViewport={defaultViewport}
         fitView
+        onNodeDragStop={handleNodeDragStop}
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap

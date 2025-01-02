@@ -18,7 +18,6 @@ const AuthProtected = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    console.log(pathname, userInfo, isAuthenticated);
     if (hydrated && !isAuthenticated) {
       router.push(`/auth/login?next=${pathname}`);
     }

@@ -73,3 +73,5 @@ export const navLinks = [
 export const APP_CONFIG = {
   name: "ERDVision",
 };
+
+

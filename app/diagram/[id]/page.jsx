@@ -8,33 +8,65 @@ import LogoText from "@/components/LogoText";
 import { FiUploadCloud } from "react-icons/fi";
 import { dummyTablesList } from "@/constants/dummy";
 import { IoIosArrowForward } from "react-icons/io";
-import { TbEdit } from "react-icons/tb";
-import { LiaEdit } from "react-icons/lia";
-import { MdCenterFocusWeak } from "react-icons/md";
-import { FiMoreVertical } from "react-icons/fi";
 import { RiMoreFill } from "react-icons/ri";
 import FlowCanvas from "@/components/diagrams/FlowCanvas";
 import { useToast } from "@/hooks/use-toast";
 import { IoAdd, IoAddSharp } from "react-icons/io5";
 import AuthProtected from "@/components/user/AuthProtected";
+import DbTable from "@/classes/table";
+import DbColumn from "@/classes/column";
+import { generateId } from "@/utils/functions";
 
 const Page = () => {
-  const [scale, setScale] = useState(1); // For zooming
-  const [translate, setTranslate] = useState({ x: 0, y: 0 }); // For panning
-  const containerRef = useRef(null);
   const { id } = useParams();
   const [diagram, setDiagram] = useState(null);
+  const [tableList, setTableList] = useState([]);
+  const [columnList, setColumnLIst] = useState([]);
+  const [relationships, setRelationships] = useState([]);
+
   const [error, setError] = useState(false);
 
   const { toast } = useToast();
+
+  const transformColumns = (columns) => {
+    return columns.map((column) => {
+      return new DbColumn(
+        column.id,
+        column.db_table,
+        column.name,
+        column.datatype,
+        column.synced,
+        column.is_primary_key,
+        column.is_nullable,
+        column.is_unique
+      );
+    });
+  };
+
+  const transformTables = (tables) => {
+    return tables.map((table) => {
+      const columns = transformColumns(table.columns);
+      return new DbTable(
+        id,
+        table.name,
+        table.id,
+        columns,
+        table.x_position,
+        table.y_position,
+        table.synced
+      );
+    });
+  };
 
   const detailUrl = `${baseBeUrl}/diagram/detail/${id}`;
   const { mutate: fetchDiagram, isLoading: isFetchingDiagram } =
     useFetchRequest(
       detailUrl,
       (response) => {
-        console.log(response);
+        console.log(response.data);
         setDiagram(response.data);
+        setTableList(transformTables(response?.data?.tables || []));
+        setColumnLIst(transformColumns(response?.data?.columns || []));
       },
       (error) => {
         console.log("An error occured", error);
@@ -54,17 +86,30 @@ const Page = () => {
     return (
       <section className="w-full min-h-screen flex items-center justify-center">
         {/* TODO: make this finer */}
-        <p className="font-medium text-xl text-red-500">Error fetching diagram</p>
+        <p className="font-medium text-xl text-red-500">
+          Error fetching diagram
+        </p>
       </section>
     );
   }
 
   const handleSyncChanges = () => {
-    console.log("syncinig");
     toast({
       title: "hello",
       swipeDirection: "left",
     });
+  };
+
+  const createDatabaseTable = () => {
+    console.log("Creating table");
+    setTableList((prev) => {
+      return [
+        ...prev,
+        new DbTable(id, "New table", generateId("table"), [], 0, 0, false, false)
+      ];
+    });
+
+    console.log(tableList);
   };
 
   return (
@@ -81,7 +126,7 @@ const Page = () => {
 
           <div>
             <h2 className="font-semibold text-sm text-white">
-              The peoples project
+              {diagram?.name}
             </h2>
             <div className="flex flex-row items-center gap-2">
               <p className="font-extralight text-sm text-mgrey100">
@@ -108,18 +153,19 @@ const Page = () => {
 
             <div className="w-full bg-white flex flex-col overflow-scroll no-scrollbar">
               <div className="w-full flex flex-row items-center justify-between p-2 text-[0.9rem] bg-[#CAF9FD]">
-                <p>(4) Tables</p>
+                <p>({diagram?.tables?.length || 0}) Tables</p>
 
-                <div
+                <button
                   className="p-1 hover:bg-green01 cursor-pointer transition-all ease-in-out rounded-sm"
                   title="New table"
+                  onClick={createDatabaseTable}
                 >
                   <IoAdd size={20} className="hover:text-green02" />
-                </div>
+                </button>
               </div>
 
               <div className="flex flex-col gap-2 overflow-scroll no-scrollbar">
-                {dummyTablesList.map((item) => {
+                {diagram?.tables?.map((item) => {
                   return (
                     <div className="flex flex-col" key={item.name}>
                       <div className="p-2 flex flex-row items-center justify-between cursor-pointer bg-[#F8FAFF] hover:bg-mgrey100 transition-all">
@@ -134,7 +180,7 @@ const Page = () => {
                         </div>
 
                         <p className="text-[0.7rem] font-extralight text-green01">
-                          2 cols
+                          {item.columns.length} cols
                         </p>
                       </div>
 
@@ -195,7 +241,11 @@ const Page = () => {
           </section>
 
           <div className="w-[80%] h-full">
-            <FlowCanvas />
+            <FlowCanvas
+              diagram={diagram}
+              tables={tableList}
+              columns={columnList}
+            />
           </div>
         </div>
       </section>
