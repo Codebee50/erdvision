@@ -23,7 +23,7 @@ const nodeTypes = {
 
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
-const FlowCanvas = ({ diagram, tables, columns }) => {
+const FlowCanvas = ({ diagram, tables, columns, onNodeClicked=()=>{}, selectedTable }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [bgColor, setBgColor] = useState(initBgColor);
@@ -54,9 +54,8 @@ const FlowCanvas = ({ diagram, tables, columns }) => {
     //setting the initial database tables
     setNodes(
       tables?.map((table, index) => {
-        console.log("table", table);
         return {
-          id: `${table.id}`,
+          id: `${table.flow_id}`,
           type: "tableNode",
           position: { x: table.x_position, y: table.y_position },
           data: {
@@ -64,6 +63,7 @@ const FlowCanvas = ({ diagram, tables, columns }) => {
             color: initBgColor,
             label: table.name,
             columns: columns.filter((column) => column.table_id === table.id),
+            selected: selectedTable === table.flow_id
           },
         };
       }) || []
@@ -143,13 +143,17 @@ const FlowCanvas = ({ diagram, tables, columns }) => {
   );
 
   const handleNodeDragStop = (event, node) => {
-    const dbTable = tables.find((table) => table.id == node.id);
+    const dbTable = tables.find((table) => table.flow_id == node.id);
     if (dbTable){
       dbTable.x_position = node.position.x;
       dbTable.y_position = node.position.y;
       dbTable.syncObject()
     };
   };
+
+  const handleNodeClicked = (event, node) =>{
+    onNodeClicked(node.id)
+  }
 
   return (
     <section className="w-full h-full">
@@ -165,6 +169,7 @@ const FlowCanvas = ({ diagram, tables, columns }) => {
         defaultViewport={defaultViewport}
         fitView
         onNodeDragStop={handleNodeDragStop}
+        onNodeClick={handleNodeClicked}
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap

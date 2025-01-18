@@ -7,8 +7,6 @@ import PageLoader from "@/components/PageLoader";
 import LogoText from "@/components/LogoText";
 import { FiUploadCloud } from "react-icons/fi";
 import { dummyTablesList } from "@/constants/dummy";
-import { IoIosArrowForward } from "react-icons/io";
-import { RiMoreFill } from "react-icons/ri";
 import FlowCanvas from "@/components/diagrams/FlowCanvas";
 import { useToast } from "@/hooks/use-toast";
 import { IoAdd, IoAddSharp } from "react-icons/io5";
@@ -16,6 +14,7 @@ import AuthProtected from "@/components/user/AuthProtected";
 import DbTable from "@/classes/table";
 import DbColumn from "@/classes/column";
 import { generateId } from "@/utils/functions";
+import TableContent from "@/components/diagrams/TableContent";
 
 const Page = () => {
   const { id } = useParams();
@@ -23,6 +22,11 @@ const Page = () => {
   const [tableList, setTableList] = useState([]);
   const [columnList, setColumnLIst] = useState([]);
   const [relationships, setRelationships] = useState([]);
+  const [selectedTable, setSelectedTable] = useState(-1);
+
+  const [isOnline, setIsOnline] = useState(
+    typeof window !== "undefined" ? navigator.onLine : true
+  );
 
   const [error, setError] = useState(false);
 
@@ -30,31 +34,32 @@ const Page = () => {
 
   const transformColumns = (columns) => {
     return columns.map((column) => {
-      return new DbColumn(
-        column.id,
-        column.db_table,
-        column.name,
-        column.datatype,
-        column.synced,
-        column.is_primary_key,
-        column.is_nullable,
-        column.is_unique
-      );
+      return new DbColumn({
+        id: column.id,
+        table_id: column.db_table,
+        name: column.name,
+        datatype: column.datatype,
+        synced: column.synced,
+        is_primary_key: column.is_primary_key,
+        is_nullable: column.is_nullable,
+        is_unique: column.is_unique,
+      });
     });
   };
 
   const transformTables = (tables) => {
     return tables.map((table) => {
       const columns = transformColumns(table.columns);
-      return new DbTable(
-        id,
-        table.name,
-        table.id,
-        columns,
-        table.x_position,
-        table.y_position,
-        table.synced
-      );
+
+      return new DbTable({
+        diagram: id,
+        flow_id: table.id,
+        name: table.name,
+        id: table.id,
+        columns: columns,
+        x_position: table.x_position,
+        y_position: table.y_position,
+      });
     });
   };
 
@@ -63,19 +68,41 @@ const Page = () => {
     useFetchRequest(
       detailUrl,
       (response) => {
-        console.log(response.data);
         setDiagram(response.data);
         setTableList(transformTables(response?.data?.tables || []));
         setColumnLIst(transformColumns(response?.data?.columns || []));
       },
       (error) => {
-        console.log("An error occured", error);
+        console.log("An error occurred", error);
         setError(true);
       }
     );
 
   useEffect(() => {
     fetchDiagram();
+  }, []);
+
+  console.log("useronline", isOnline);
+
+  const handleNodeClicked = (flow_id) => {
+    setSelectedTable(flow_id);
+  };
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    // window.addEventListener('online', handleOnline);
+    // window.addEventListener('offline', handleOffline);
+
+    window.addEventListener("online", () => console.log("Became online"));
+    window.addEventListener("offline", () => console.log("Became offline"));
+
+    // Cleanup event listeners on unmount
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   if (isFetchingDiagram) {
@@ -101,15 +128,45 @@ const Page = () => {
   };
 
   const createDatabaseTable = () => {
-    console.log("Creating table");
-    setTableList((prev) => {
-      return [
-        ...prev,
-        new DbTable(id, "New table", generateId("table"), [], 0, 0, false, false)
-      ];
+    /**Creates a new database table
+     *
+     * Note: Until the table is fetched from the db, the flow id is used to identify it on the frontend
+     * the flow id initially is the maximum backend id
+     * when the table is fetched from the db, the flow id now becomes the id generated from the backend
+     */
+    const flow_id = Math.max(...tableList.map((table) => table.id)) + 1;
+    // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
+    const newTable = new DbTable({
+      diagram: id,
+      flow_id: flow_id,
+      name: "New table",
+      id: null,
+      columns: [],
+      x_position: 0,
+      y_position: 0,
+      created: false,
+      synced: false,
     });
 
-    console.log(tableList);
+    setTableList((prev) => {
+      return [...prev, newTable];
+    });
+  };
+
+  const handleTableNameChanged = (tableId, newName) => {
+    const table = tableList.find((table) => table.flow_id == tableId);
+    if (table) {
+      table.name = newName;
+      table.syncObject();
+      setTableList(
+        tableList.map((prevNode) => {
+          if (prevNode.flow_id === tableId) {
+            prevNode.name = newName;
+          }
+          return prevNode;
+        })
+      );
+    }
   };
 
   return (
@@ -165,75 +222,15 @@ const Page = () => {
               </div>
 
               <div className="flex flex-col gap-2 overflow-scroll no-scrollbar">
-                {diagram?.tables?.map((item) => {
+                {tableList?.map((item) => {
                   return (
-                    <div className="flex flex-col" key={item.name}>
-                      <div className="p-2 flex flex-row items-center justify-between cursor-pointer bg-[#F8FAFF] hover:bg-mgrey100 transition-all">
-                        <div className="flex flex-row items-center gap-2">
-                          <IoIosArrowForward size={12} />
-
-                          <div className="flex flex-col">
-                            <p className="text-[0.9rem] font-medium text-green-900">
-                              {item.name}
-                            </p>
-                          </div>
-                        </div>
-
-                        <p className="text-[0.7rem] font-extralight text-green01">
-                          {item.columns.length} cols
-                        </p>
-                      </div>
-
-                      <div className="w-full flex flex-col hidden">
-                        {item.columns.map((column, index) => {
-                          return (
-                            <div
-                              className="w-full flex flex-row items-center justify-between p-2"
-                              key={column.name}
-                            >
-                              <div className="flex flex-row items-center gap-3">
-                                <div className="w-[9px] h-[9px] rounded-full border-[1.5px] border-[#EAEAEC]"></div>
-                                <input
-                                  type="text"
-                                  name=""
-                                  id=""
-                                  defaultValue={column.name}
-                                  className="max-w-[90px] text-[0.8rem] p-[5px] border border-mgrey200 outline-green02 rounded-md"
-                                />
-                                <input
-                                  type="text"
-                                  defaultValue={column.datatype}
-                                  className="max-w-[90px] text-[0.8rem] p-[5px] border rounded-md border-mgrey100 outline-green02"
-                                />
-                              </div>
-
-                              <div
-                                className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
-                                title="Primary key"
-                              >
-                                <p className="text-blue01 text-[0.8rem] font-semibold">
-                                  PK
-                                </p>
-                              </div>
-
-                              <div
-                                className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
-                                title="Nullable"
-                              >
-                                <p className="text-[#474747] font-semibold text-[0.8rem]">
-                                  N
-                                </p>
-                              </div>
-
-                              <div></div>
-                              <div className="cursor-pointer">
-                                <RiMoreFill />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <TableContent
+                      key={item.id}
+                      table={item}
+                      columnList={columnList}
+                      selected={item.id == selectedTable}
+                      onTableNameChanged={handleTableNameChanged}
+                    />
                   );
                 })}
               </div>
@@ -245,6 +242,8 @@ const Page = () => {
               diagram={diagram}
               tables={tableList}
               columns={columnList}
+              onNodeClicked={handleNodeClicked}
+              selectedTable={selectedTable}
             />
           </div>
         </div>

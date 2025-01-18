@@ -18,7 +18,7 @@ const Node = styled.div`
 
 const DatabaseTableNode = (props) => {
   return (
-    <Node className="w-[210px] flex flex-col">
+    <Node className={`w-[210px] flex flex-col ${props.selected && "border border-green02 shadow-lg"}`}>
       <div className="w-full h-[33px] bg-[#F8FAFF] flex flex-row items-center justify-center  p-2">
         <div className="flex flex-row items-center gap-2 w-full">
           {/* <div className="w-[20px] h-[20px] bg-black rounded-sm"></div> */}
@@ -37,11 +37,11 @@ const DatabaseTableNode = (props) => {
 
       <div className="w-full flex flex-col">
         {props.data?.columns?.map((column) => {
-          return <DatabaseColumn key={column.id} column={column} />;
+          return <DatabaseColumn key={column.id} column={column} selected={props?.selected} />;
         })}
         {/* <DatabaseColumn /> */}
       </div>
-      <div className="w-full bg-[#E0BA34] h-[2px]"></div>
+      <div className={`w-full ${props.selected? "bg-transparent": "bg-[#E0BA34]"} h-[2px]`}></div>
     </Node>
   );
 };

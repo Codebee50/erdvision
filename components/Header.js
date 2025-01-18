@@ -9,7 +9,7 @@ import { logout, setCredentials } from "@/features/auth/authSlice";
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-
+  
   const { data, isFetching } = useGetUserDetailsQuery("userDetails", {
     //perform refetch every 15 minutes
     pollingInterval: 900000,

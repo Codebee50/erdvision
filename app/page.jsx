@@ -19,6 +19,7 @@ import { IoMdArrowBack } from "react-icons/io";
 import { IoMdArrowForward } from "react-icons/io";
 import UserPercentage from "@/components/user/UserPercentage";
 import { useRouter } from "next/navigation";
+import AuthProtected from "@/components/user/AuthProtected";
 
 export default function Home() {
   // const [currentBox, setCurrentBox] = useState(0);
@@ -87,7 +88,7 @@ export default function Home() {
   ];
 
   return (
-    <>
+    <AuthProtected>
       <section className="w-full min-h-screen bg-green01 relative">
         <section className="w-screen grid-section overflow-hidden grid-cols-3 br350:grid-cols-4 br475:grid-cols-5 md:grid-cols-6">
           {innerBoxes}
@@ -195,6 +196,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </>
+    </AuthProtected>
   );
 }

@@ -5,7 +5,7 @@ import { Handle, Position } from "@xyflow/react";
 const DatabaseColumn = ({column}) => {
 
   return (
-    <div className="relative">
+    <div className="relative ">
       <Handle type="target" position={Position.Left} isConnectable={true} id={`l-${column.id}`}/>
       <Handle type="source" position={Position.Left} isConnectable={true} id={`ls-${column.id}`}/>
 

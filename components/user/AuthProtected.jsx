@@ -9,6 +9,7 @@ const AuthProtected = ({ children }) => {
   const { userInfo, isAuthenticated} = useSelector(
     (state) => state.auth
   );
+
   const router = useRouter();
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
@@ -18,7 +19,7 @@ const AuthProtected = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (hydrated && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?next=${pathname}`);
     }
   }, [isAuthenticated, hydrated]);
