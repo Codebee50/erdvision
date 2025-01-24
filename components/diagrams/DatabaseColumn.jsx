@@ -4,10 +4,23 @@ import { Handle, Position } from "@xyflow/react";
 
 const DatabaseColumn = ({column}) => {
 
+  const getJsonId = (prefix)=>{
+    return JSON.stringify({
+      id: column.id,
+      prefix: prefix,
+    })
+  }
+
   return (
+    /**
+     * lt = left target 
+     * ls = left source 
+     * rt = right target 
+     * rs = right source 
+     */
     <div className="relative ">
-      <Handle type="target" position={Position.Left} isConnectable={true} id={`l-${column.id}`}/>
-      <Handle type="source" position={Position.Left} isConnectable={true} id={`ls-${column.id}`}/>
+      <Handle type="target" position={Position.Left} isConnectable={true} id={`lt-${column.id}`} />
+      <Handle type="source" position={Position.Left} isConnectable={true} id={`ls-${column.id}`} />
 
       <div className="w-full h-[33px] bg-white flex flex-row items-center justify-between py-2 px-4 hover:bg-mgrey200 cursor-pointer">
         <p className="text-[#565656] text-[0.7rem]">{column?.name}</p>

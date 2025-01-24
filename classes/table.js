@@ -1,6 +1,7 @@
 import axios from "axios";
 import { baseBeUrl } from "@/urls/be";
 import Cookies from "js-cookie";
+import SyncResponse from "./syncResponse";
 
 export default class DbTable {
   constructor({
@@ -23,8 +24,10 @@ export default class DbTable {
     this.synced = synced;
     this.diagram = diagram;
     this.created = created;
+    console.log("table columns", columns);
   }
 
+  /** Make a call to the backend to save the database table */
   async createTable() {
     const url = `${baseBeUrl}/diagram/table/create/`;
     const tableData = {
@@ -49,17 +52,35 @@ export default class DbTable {
         this.created = true;
         console.log("Table created successfully");
         return true;
+      } else {
+        console.log("An error occurred while creating table");
+        this.synced = false;
+        this.created = false;
+        return false;
       }
     } catch (error) {
       console.log("An error occurred while creating table", error);
       this.synced = false;
+      this.created = false;
       return false;
     }
   }
 
+  async syncColumns() {
+    console.log('syncing the columns')
+    this.columns.forEach((column) => {
+      console.log('aga',column)
+      if (!column.synced) {
+        column.syncObject();
+      }
+    });
+  }
+
+  /** Ensure the frontend is consistent with the backend */
   async syncObject() {
     if (!this.created) {
       const created = await this.createTable();
+      this.syncColumns()
       return created;
     }
 
@@ -78,6 +99,7 @@ export default class DbTable {
         Authorization: `Bearer ${accessToken}`,
       };
 
+      this.syncColumns()
       const response = await axios.patch(url, syncData, { headers });
 
       if (response.status === 200) {

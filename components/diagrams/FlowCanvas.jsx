@@ -23,10 +23,18 @@ const nodeTypes = {
 
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
-const FlowCanvas = ({ diagram, tables, columns, onNodeClicked=()=>{}, selectedTable }) => {
+const FlowCanvas = ({
+  diagram,
+  tables,
+  columns,
+  onNodeClicked = () => {},
+  selectedTable,
+}) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [bgColor, setBgColor] = useState(initBgColor);
+
+  console.log("selected table ", selectedTable);
 
   useEffect(() => {
     const onChange = (event) => {
@@ -62,8 +70,9 @@ const FlowCanvas = ({ diagram, tables, columns, onNodeClicked=()=>{}, selectedTa
             onChange: onChange,
             color: initBgColor,
             label: table.name,
-            columns: columns.filter((column) => column.table_id === table.id),
-            selected: selectedTable === table.flow_id
+            // columns: columns.filter((column) => column.table_id === table.id),
+            columns: table.columns,
+            selected: selectedTable === table.flow_id,
           },
         };
       }) || []
@@ -132,28 +141,31 @@ const FlowCanvas = ({ diagram, tables, columns, onNodeClicked=()=>{}, selectedTa
     //     // animated: true,
     //   },
     // ]);
-  }, [tables]);
+  }, [tables, selectedTable]);
 
   const onConnect = useCallback(
-    (params) =>
+    (params) => {
+      console.log('connected', params)
       setEdges((eds) =>
         addEdge({ ...params, animated: false, type: "smoothstep" }, eds)
-      ),
+      );
+    },
+
     []
   );
 
   const handleNodeDragStop = (event, node) => {
     const dbTable = tables.find((table) => table.flow_id == node.id);
-    if (dbTable){
+    if (dbTable) {
       dbTable.x_position = node.position.x;
       dbTable.y_position = node.position.y;
-      dbTable.syncObject()
-    };
+      dbTable.syncObject();
+    }
   };
 
-  const handleNodeClicked = (event, node) =>{
-    onNodeClicked(node.id)
-  }
+  const handleNodeClicked = (event, node) => {
+    onNodeClicked(node.id);
+  };
 
   return (
     <section className="w-full h-full">
@@ -170,6 +182,9 @@ const FlowCanvas = ({ diagram, tables, columns, onNodeClicked=()=>{}, selectedTa
         fitView
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClicked}
+        zoomOnScroll={false}
+        panOnScroll={true}
+
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap

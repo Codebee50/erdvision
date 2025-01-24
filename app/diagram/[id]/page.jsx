@@ -23,6 +23,7 @@ const Page = () => {
   const [columnList, setColumnLIst] = useState([]);
   const [relationships, setRelationships] = useState([]);
   const [selectedTable, setSelectedTable] = useState(-1);
+  const [refreshFlow, setRefreshFlow] = useState(false);
 
   const [isOnline, setIsOnline] = useState(
     typeof window !== "undefined" ? navigator.onLine : true
@@ -43,6 +44,8 @@ const Page = () => {
         is_primary_key: column.is_primary_key,
         is_nullable: column.is_nullable,
         is_unique: column.is_unique,
+        flow_id: column.id,
+        created: true,
       });
     });
   };
@@ -59,6 +62,8 @@ const Page = () => {
         columns: columns,
         x_position: table.x_position,
         y_position: table.y_position,
+        synced: table.synced,
+        created: true,
       });
     });
   };
@@ -82,8 +87,6 @@ const Page = () => {
     fetchDiagram();
   }, []);
 
-  console.log("useronline", isOnline);
-
   const handleNodeClicked = (flow_id) => {
     setSelectedTable(flow_id);
   };
@@ -104,6 +107,14 @@ const Page = () => {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    tableList.forEach((table) => {
+      if (!table.synced) {
+        table.syncObject();
+      }
+    });
+  }, [tableList]);
 
   if (isFetchingDiagram) {
     return <PageLoader loaderSize={60} />;
@@ -134,7 +145,7 @@ const Page = () => {
      * the flow id initially is the maximum backend id
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
-    const flow_id = Math.max(...tableList.map((table) => table.id)) + 1;
+    const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,
@@ -151,6 +162,33 @@ const Page = () => {
     setTableList((prev) => {
       return [...prev, newTable];
     });
+
+    newTable.syncObject();
+  };
+
+  const handleColumnNameChange = (columnId, tableId, newName) => {
+    const table = tableList.find((table) => table.flow_id == tableId);
+
+    const column = table.columns.find((column) => column.flow_id == columnId);
+    if (column && newName && newName !== '') {
+      column.name = newName;
+      table.syncObject();
+      setTableList(
+        tableList.map((prevTable) => {
+          if (prevTable.flow_id == tableId) {
+            prevTable.synced = false;
+            prevTable.columns = prevTable.columns.map((prevColumn) => {
+              if (prevColumn.flow_id == columnId) {
+                prevColumn.name = newName;
+                prevColumn.synced = false;
+              }
+              return prevColumn;
+            });
+          }
+          return prevTable;
+        })
+      );
+    }
   };
 
   const handleTableNameChanged = (tableId, newName) => {
@@ -167,6 +205,33 @@ const Page = () => {
         })
       );
     }
+  };
+
+  const handleColumnCreated = (flow_id) => {
+    setTableList((prevlist) =>
+      prevlist.map((table) => {
+        if (table.flow_id == flow_id) {
+          const max_id =
+            Math.max(0, ...table.columns.map((column) => column.flow_id)) + 1;
+
+          const gen_flow_id = parseInt(`${table.flow_id}${max_id}`);
+          const newColumn = new DbColumn({
+            id: null,
+            table_id: flow_id,
+            flow_id: gen_flow_id,
+            name: "new_column",
+            datatype: "varchar20",
+          });
+
+          return new DbTable({
+            ...table,
+            synced: false,
+            columns: [...(table.columns || []), newColumn],
+          });
+        }
+        return table;
+      })
+    );
   };
 
   return (
@@ -227,9 +292,12 @@ const Page = () => {
                     <TableContent
                       key={item.id}
                       table={item}
-                      columnList={columnList}
+                      columnList={item.columns}
                       selected={item.id == selectedTable}
                       onTableNameChanged={handleTableNameChanged}
+                      onHeaderClicked={handleNodeClicked}
+                      onColumnCreatedClicked={handleColumnCreated}
+                      onColumnNameChanged={handleColumnNameChange}
                     />
                   );
                 })}
@@ -244,6 +312,7 @@ const Page = () => {
               columns={columnList}
               onNodeClicked={handleNodeClicked}
               selectedTable={selectedTable}
+              refresh={refreshFlow}
             />
           </div>
         </div>
