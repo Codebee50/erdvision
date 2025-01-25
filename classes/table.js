@@ -24,7 +24,6 @@ export default class DbTable {
     this.synced = synced;
     this.diagram = diagram;
     this.created = created;
-    console.log("table columns", columns);
   }
 
   /** Make a call to the backend to save the database table */
@@ -67,9 +66,7 @@ export default class DbTable {
   }
 
   async syncColumns() {
-    console.log('syncing the columns')
     this.columns.forEach((column) => {
-      console.log('aga',column)
       if (!column.synced) {
         column.syncObject();
       }

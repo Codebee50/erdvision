@@ -12,6 +12,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import ColorSelectorNode from "./ColorSelectorNode";
 import DatabaseTableNode from "./DatabaseTableNode";
+import Relationship from "@/classes/relationship";
 
 const initBgColor = "#F2F4F5";
 
@@ -29,12 +30,13 @@ const FlowCanvas = ({
   columns,
   onNodeClicked = () => {},
   selectedTable,
+  relationships,
+  onRelationshipCreated=()=>{},
+  onRelationshipDeleted=()=>{}
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [bgColor, setBgColor] = useState(initBgColor);
-
-  console.log("selected table ", selectedTable);
 
   useEffect(() => {
     const onChange = (event) => {
@@ -70,88 +72,74 @@ const FlowCanvas = ({
             onChange: onChange,
             color: initBgColor,
             label: table.name,
-            // columns: columns.filter((column) => column.table_id === table.id),
             columns: table.columns,
             selected: selectedTable === table.flow_id,
           },
         };
       }) || []
     );
-
-    // setNodes([
-    //   {
-    //     id: "1",
-    //     type: "input",
-    //     data: { label: "An input node" },
-    //     position: { x: 0, y: 50 },
-    //     sourcePosition: "right",
-    //   },
-    //   {
-    //     id: "2",
-    //     type: "selectorNode",
-    //     data: { onChange: onChange, color: initBgColor },
-    //     position: { x: 300, y: 50 },
-    //   },
-    //   {
-    //     id: "5",
-    //     type: "tableNode",
-    //     data: { onChange: onChange, color: initBgColor, label:"Accounts" },
-    //     position: { x: 500, y: 50 },
-    //   },
-    //   {
-    //     id: "3",
-    //     type: "output",
-    //     data: { label: "Output A" },
-    //     position: { x: 650, y: 25 },
-    //     targetPosition: "left",
-    //   },
-    //   {
-    //     id: "4",
-    //     type: "output",
-    //     data: { label: "Output B" },
-    //     position: { x: 650, y: 100 },
-    //     targetPosition: "left",
-    //   },
-    // ]);
-
-    // setEdges([
-    //   {
-    //     id: "e1-2",
-    //     source: "1",
-    //     target: "2",
-    //     type: "smoothstep",
-    //     // animated: true,
-    //   },
-    //   {
-    //     id: "e2a-3",
-    //     source: "2",
-    //     target: "3",
-    //     sourceHandle: "a",
-    //     type: "smoothstep",
-
-    //     // animated: true,
-    //   },
-    //   {
-    //     id: "e2b-4",
-    //     source: "2",
-    //     target: "4",
-    //     sourceHandle: "b",
-    //     type: "smoothstep",
-
-    //     // animated: true,
-    //   },
-    // ]);
   }, [tables, selectedTable]);
+
+  useEffect(() => {
+    //execute whenever the relationships change
+    setEdges(
+      relationships.map((rel) => {
+        return {
+          id: `${rel.flow_id}`,
+          source: `${rel.source_node_id}`,
+          target: `${rel.target_node_id}`,
+          sourceHandle: `${rel.from_column}-${rel.source_suffix}`,
+          targetHandle: `${rel.to_column}-${rel.target_suffix}`,
+          animated: false,
+          type: "smoothstep",
+        };
+      })
+    ) || [];
+  }, []);
+
 
   const onConnect = useCallback(
     (params) => {
-      console.log('connected', params)
+      const { sourceHandle, targetHandle, source, target } = params;
+      const sourceSplit = sourceHandle.split("-");
+      const targetSplit = targetHandle.split("-");
+
+      const flow_id = Math.max(0, ...relationships.map((rel) => rel.flow_id)) + 1;
+
+      const relationship = new Relationship({
+        from_column: sourceSplit[0],
+        to_column: targetSplit[0],
+        flow_id: flow_id,
+        id: null,
+        rel_type: "one-to-one",
+        synced: false,
+        created: false,
+        source_node_id: source,
+        target_node_id: target,
+        source_suffix: sourceSplit[1],
+        target_suffix: targetSplit[1],
+      });
+
+      relationship.syncObject();  
+
+      onRelationshipCreated(relationship);
       setEdges((eds) =>
         addEdge({ ...params, animated: false, type: "smoothstep" }, eds)
       );
     },
 
-    []
+    [relationships]
+  );
+
+  const handleEdgesChange = useCallback(
+    (changes) => {
+      const deletedEdges = changes.filter((change) => change.type === "remove");
+      if(deletedEdges.length > 0){
+        onRelationshipDeleted(deletedEdges)
+      }
+      onEdgesChange(changes);
+    },
+    [onEdgesChange]
   );
 
   const handleNodeDragStop = (event, node) => {
@@ -173,7 +161,7 @@ const FlowCanvas = ({
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         snapToGrid={true}
@@ -184,7 +172,6 @@ const FlowCanvas = ({
         onNodeClick={handleNodeClicked}
         zoomOnScroll={false}
         panOnScroll={true}
-
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap

@@ -22,6 +22,7 @@ module.exports = {
   			mgrey200: '#F2F4F5',
   			mblack100: '#727584',
   			mblack200: '#434754',
+			chatinput: "#F1F2F4",
   			green02transparent: 'rgb(126, 214, 223, 0.3)',
   			card: {
   				DEFAULT: 'hsl(var(--card))',

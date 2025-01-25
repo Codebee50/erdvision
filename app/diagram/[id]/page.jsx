@@ -15,6 +15,15 @@ import DbTable from "@/classes/table";
 import DbColumn from "@/classes/column";
 import { generateId } from "@/utils/functions";
 import TableContent from "@/components/diagrams/TableContent";
+import Relationship from "@/classes/relationship";
+import { CiChat1 } from "react-icons/ci";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { TbClipboardCopy } from "react-icons/tb";
+import { useSelector } from "react-redux";
 
 const Page = () => {
   const { id } = useParams();
@@ -24,6 +33,11 @@ const Page = () => {
   const [relationships, setRelationships] = useState([]);
   const [selectedTable, setSelectedTable] = useState(-1);
   const [refreshFlow, setRefreshFlow] = useState(false);
+  const [socket, setSocket] = useState(null)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+  const [chatMessages, setChatMessages] = useState([])
+
+  const { userToken } = useSelector((state) => state.auth);
 
   const [isOnline, setIsOnline] = useState(
     typeof window !== "undefined" ? navigator.onLine : true
@@ -32,6 +46,24 @@ const Page = () => {
   const [error, setError] = useState(false);
 
   const { toast } = useToast();
+
+  const transformRelationships = (relationships) => {
+    return relationships.map((relationship) => {
+      return new Relationship({
+        from_column: relationship.from_column,
+        to_column: relationship.to_column,
+        flow_id: relationship.id,
+        id: relationship.id,
+        rel_type: relationship.rel_type,
+        synced: relationship.synced,
+        created: true,
+        source_node_id: relationship.source_node,
+        target_node_id: relationship.target_node,
+        source_suffix: relationship.source_suffix,
+        target_suffix: relationship.target_suffix,
+      });
+    });
+  };
 
   const transformColumns = (columns) => {
     return columns.map((column) => {
@@ -76,6 +108,9 @@ const Page = () => {
         setDiagram(response.data);
         setTableList(transformTables(response?.data?.tables || []));
         setColumnLIst(transformColumns(response?.data?.columns || []));
+        setRelationships(
+          transformRelationships(response?.data?.relationships || [])
+        );
       },
       (error) => {
         console.log("An error occurred", error);
@@ -91,21 +126,35 @@ const Page = () => {
     setSelectedTable(flow_id);
   };
 
+  //TODO: remove this if not later in use
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    // window.addEventListener('online', handleOnline);
-    // window.addEventListener('offline', handleOffline);
-
     window.addEventListener("online", () => console.log("Became online"));
     window.addEventListener("offline", () => console.log("Became offline"));
 
-    // Cleanup event listeners on unmount
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, []);
+
+  useEffect(() => {
+    const websocket = new WebSocket(`${baseBeUrl}/ws/diagram/chat/${id}/?token=${userToken}&did=${id}`);
+    websocket.onopen = () => {
+      setIsSocketConnected(true)
+      console.log("websocket connection established");
+    };
+
+    websocket.onmessage = () => {};
+
+    websocket.onclose = () => {
+      console.log("websocket connection closed");
+    };
+
+    setSocket(websocket)
+
   }, []);
 
   useEffect(() => {
@@ -170,7 +219,7 @@ const Page = () => {
     const table = tableList.find((table) => table.flow_id == tableId);
 
     const column = table.columns.find((column) => column.flow_id == columnId);
-    if (column && newName && newName !== '') {
+    if (column && newName && newName !== "") {
       column.name = newName;
       table.syncObject();
       setTableList(
@@ -234,8 +283,75 @@ const Page = () => {
     );
   };
 
+  const handleRelationshipCreated = (relationship) => {
+    setRelationships((prev) => {
+      return [...prev, relationship];
+    });
+  };
+
+  const handleRelationshipDeleted = (deletedEdges) => {
+    deletedEdges.forEach((edge) => {
+      const relationship = relationships.find((rel) => rel.flow_id == edge.id);
+      relationship.deleteObject(); //delete relationship from backend
+    });
+
+    setRelationships((prev) => {
+      return prev.filter(
+        (rel) =>
+          !deletedEdges.some((deletedEdge) => deletedEdge.id === rel.flow_id)
+      );
+    });
+  };
+
   return (
     <AuthProtected>
+      <section className="absolute bottom-0 right-0 z-10">
+        <Popover className="">
+          <PopoverTrigger>
+            <div className="bg-white cursor-pointer rounded-md flex flex-row items-center gap-2 p-3">
+              <CiChat1 />
+              <p className="font-medium text-sm">Messages</p>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="p-0 rounded-t-lg overflow-hidden w-[350px]">
+            <div className="w-full h-full flex flex-col">
+              <div className="bg-green01 p-3">
+                <p className="font-medium text-sm text-white">
+                  {diagram?.name} chat room
+                </p>
+              </div>
+
+              <div className="w-full h-[350px] flex flex-col items-center justify-between">
+                <div className="w-full h-[200px] bg-red-300"></div>
+
+                <div className="bg-chatinput w-[97%] mb-2 p-2 flex flex-col rounded-md">
+                  <textarea
+                    name=""
+                    className="outline-none border-none rounded-md bg-chatinput text-sm resize-none"
+                    placeholder="Enter your message"
+                    id=""
+                  ></textarea>
+
+                  <div className="w-full flex flex-row items-center justify-between">
+                    <div>
+                      <TbClipboardCopy
+                        color="#868686"
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <input
+                      type="submit"
+                      value="Send"
+                      className="self-end bg-black text-white text-sm mt-2 py-2 px-5 cursor-pointer rounded-md"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </section>
+
       <section className="w-full min-h-screen relative flex flex-col">
         <section
           className=" w-screen h-[10vh] bg-green01 top-0 z-20 flex flex-row justify-between items-center px-6 py-2 "
@@ -313,6 +429,9 @@ const Page = () => {
               onNodeClicked={handleNodeClicked}
               selectedTable={selectedTable}
               refresh={refreshFlow}
+              relationships={relationships}
+              onRelationshipCreated={handleRelationshipCreated}
+              onRelationshipDeleted={handleRelationshipDeleted}
             />
           </div>
         </div>
