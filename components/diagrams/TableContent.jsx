@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useReducer } from "react";
 import { RiMoreFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
+import DatatypeInput from "./DatatypeInput";
+
 
 const initialState = {
   columnName: "",
@@ -10,10 +12,10 @@ const initialState = {
 function columnChangedReducer(state, action) {
   switch (action.type) {
     case "COLUMN_NAME_CHANGED":
-      console.log('payload', action.payload, state)
+      console.log("payload", action.payload, state);
       return {
         ...state,
-        ...action.payload
+        ...action.payload,
       };
     default:
       return state;
@@ -28,6 +30,8 @@ const TableContent = ({
   onHeaderClicked = () => {},
   onColumnCreatedClicked = () => {},
   onColumnNameChanged = () => {},
+  onColumnDatatypeChanged = ()=>{},
+  typeList,
 }) => {
   const [inputValue, setInputValue] = useState(null);
   const [column, dispatchColumnChanged] = useReducer(
@@ -44,7 +48,6 @@ const TableContent = ({
 
     return () => clearTimeout(timer);
   }, [inputValue]);
-
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -66,6 +69,11 @@ const TableContent = ({
   const handleTableNameInputChanged = (e) => {
     setInputValue(e.target.value);
   };
+
+  const handleColumnDatatypeChanged= (datatype, columnId)=>{
+      console.log(datatype, columnId)
+      onColumnDatatypeChanged(columnId, table.flow_id, datatype)
+  }
   return (
     <>
       <div className="flex flex-col" key={table.flow_id}>
@@ -121,10 +129,12 @@ const TableContent = ({
                         }}
                         className="max-w-[90px] text-[0.8rem] p-[5px] border border-mgrey200 outline-green02 rounded-md"
                       />
-                      <input
-                        type="text"
-                        defaultValue={column.datatype}
-                        className="max-w-[90px] text-[0.8rem] p-[5px] border rounded-md border-mgrey100 outline-green02"
+
+                      <DatatypeInput
+                        typeList={typeList}
+                        initialValue={column.datatype}
+                        columnId={column.flow_id}
+                        onInputChange={handleColumnDatatypeChanged}
                       />
                     </div>
 

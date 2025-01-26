@@ -16,14 +16,8 @@ import DbColumn from "@/classes/column";
 import { generateId } from "@/utils/functions";
 import TableContent from "@/components/diagrams/TableContent";
 import Relationship from "@/classes/relationship";
-import { CiChat1 } from "react-icons/ci";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { TbClipboardCopy } from "react-icons/tb";
-import { useSelector } from "react-redux";
+import Messaging from "@/components/diagrams/Messaging";
+import axios from "axios";
 
 const Page = () => {
   const { id } = useParams();
@@ -33,15 +27,7 @@ const Page = () => {
   const [relationships, setRelationships] = useState([]);
   const [selectedTable, setSelectedTable] = useState(-1);
   const [refreshFlow, setRefreshFlow] = useState(false);
-  const [socket, setSocket] = useState(null)
-  const [isSocketConnected, setIsSocketConnected] = useState(false)
-  const [chatMessages, setChatMessages] = useState([])
-
-  const { userToken } = useSelector((state) => state.auth);
-
-  const [isOnline, setIsOnline] = useState(
-    typeof window !== "undefined" ? navigator.onLine : true
-  );
+  const [typeList, setTypeList] = useState([]);
 
   const [error, setError] = useState(false);
 
@@ -100,6 +86,15 @@ const Page = () => {
     });
   };
 
+  const getDataTypes = async (databaseType) => {
+    try {
+      const response = await axios.get(
+        `${baseBeUrl}/diagram/datatypes/${databaseType}`
+      );
+      setTypeList(response.data.data);
+    } catch (error) {}
+  };
+
   const detailUrl = `${baseBeUrl}/diagram/detail/${id}`;
   const { mutate: fetchDiagram, isLoading: isFetchingDiagram } =
     useFetchRequest(
@@ -111,9 +106,10 @@ const Page = () => {
         setRelationships(
           transformRelationships(response?.data?.relationships || [])
         );
+
+        getDataTypes(response.data.database_type);
       },
       (error) => {
-        console.log("An error occurred", error);
         setError(true);
       }
     );
@@ -125,37 +121,6 @@ const Page = () => {
   const handleNodeClicked = (flow_id) => {
     setSelectedTable(flow_id);
   };
-
-  //TODO: remove this if not later in use
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", () => console.log("Became online"));
-    window.addEventListener("offline", () => console.log("Became offline"));
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  useEffect(() => {
-    const websocket = new WebSocket(`${baseBeUrl}/ws/diagram/chat/${id}/?token=${userToken}&did=${id}`);
-    websocket.onopen = () => {
-      setIsSocketConnected(true)
-      console.log("websocket connection established");
-    };
-
-    websocket.onmessage = () => {};
-
-    websocket.onclose = () => {
-      console.log("websocket connection closed");
-    };
-
-    setSocket(websocket)
-
-  }, []);
 
   useEffect(() => {
     tableList.forEach((table) => {
@@ -213,6 +178,34 @@ const Page = () => {
     });
 
     newTable.syncObject();
+  };
+
+  const handleColumnDatatypeChanged = (columnId, tableId, newDatatype) => {
+    const table = tableList.find((table) => table.flow_id == tableId);
+
+    const column = table.columns.find((column) => column.flow_id == columnId);
+
+    if (column && newDatatype && newDatatype !== "") {
+      column.datatype = newDatatype;
+      table.syncObject();
+      setTableList(
+        tableList.map((prevTable) => {
+          if (prevTable.flow_id == tableId) {
+            prevTable.synced = false;
+            prevTable.columns = prevTable.columns.map((prevColumn) => {
+              if (prevColumn.flow_id == columnId) {
+                prevColumn.datatype = newDatatype;
+                prevColumn.synced = false;
+              }
+
+              return prevColumn;
+            });
+          }
+
+          return prevTable;
+        })
+      );
+    }
   };
 
   const handleColumnNameChange = (columnId, tableId, newName) => {
@@ -305,52 +298,7 @@ const Page = () => {
 
   return (
     <AuthProtected>
-      <section className="absolute bottom-0 right-0 z-10">
-        <Popover className="">
-          <PopoverTrigger>
-            <div className="bg-white cursor-pointer rounded-md flex flex-row items-center gap-2 p-3">
-              <CiChat1 />
-              <p className="font-medium text-sm">Messages</p>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="p-0 rounded-t-lg overflow-hidden w-[350px]">
-            <div className="w-full h-full flex flex-col">
-              <div className="bg-green01 p-3">
-                <p className="font-medium text-sm text-white">
-                  {diagram?.name} chat room
-                </p>
-              </div>
-
-              <div className="w-full h-[350px] flex flex-col items-center justify-between">
-                <div className="w-full h-[200px] bg-red-300"></div>
-
-                <div className="bg-chatinput w-[97%] mb-2 p-2 flex flex-col rounded-md">
-                  <textarea
-                    name=""
-                    className="outline-none border-none rounded-md bg-chatinput text-sm resize-none"
-                    placeholder="Enter your message"
-                    id=""
-                  ></textarea>
-
-                  <div className="w-full flex flex-row items-center justify-between">
-                    <div>
-                      <TbClipboardCopy
-                        color="#868686"
-                        className="cursor-pointer"
-                      />
-                    </div>
-                    <input
-                      type="submit"
-                      value="Send"
-                      className="self-end bg-black text-white text-sm mt-2 py-2 px-5 cursor-pointer rounded-md"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </section>
+      <Messaging diagramId={id} diagramName={diagram?.name} />
 
       <section className="w-full min-h-screen relative flex flex-col">
         <section
@@ -414,6 +362,8 @@ const Page = () => {
                       onHeaderClicked={handleNodeClicked}
                       onColumnCreatedClicked={handleColumnCreated}
                       onColumnNameChanged={handleColumnNameChange}
+                      typeList={typeList}
+                      onColumnDatatypeChanged={handleColumnDatatypeChanged}
                     />
                   );
                 })}
