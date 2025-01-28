@@ -70,6 +70,22 @@ export const navLinks = [
   },
 ];
 
+export const CardinalityChoices = [
+  {
+    label: "One to One",
+    value: "one-to-one"
+  },
+  {
+    label: "One to Many",
+    value: "one-to-many"
+  },
+  {
+    label: "Many to One",
+    value: "many-to-one"
+  },
+];
+
+
 export const APP_CONFIG = {
   name: "ERDVision",
 };

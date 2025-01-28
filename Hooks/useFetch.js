@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const useFetchRequest = (url, onSuccess, onError) => {
+const useFetchRequest = (url, onSuccess, onError, responseType="json") => {
   const mutation = useMutation({
     mutationFn: async (authorize = true) => {
       const accessToken = Cookies.get("userToken");
@@ -12,7 +12,7 @@ const useFetchRequest = (url, onSuccess, onError) => {
       if (accessToken && authorize) {
         headers.Authorization = `Bearer ${accessToken}`;
       }
-      return await axios.get(url, { headers });
+      return await axios.get(url, { headers, responseType });
     },
     onSuccess,
     onError,

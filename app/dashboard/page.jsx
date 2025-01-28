@@ -82,6 +82,7 @@ const Page = () => {
   const handleDiagramCreateSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+
     createDiagram(formData);
   };
 
@@ -163,7 +164,7 @@ const Page = () => {
                   />
                   <SelectDatabaseTypes />
 
-                  <SelectVisibility />
+                  {/* <SelectVisibility /> */}
 
                   <LoadableButton
                     label="Submit"

@@ -25,7 +25,6 @@ const nodeTypes = {
   tableNode: DatabaseTableNode,
 };
 
-
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
 const FlowCanvas = ({
@@ -37,6 +36,7 @@ const FlowCanvas = ({
   relationships,
   onRelationshipCreated = () => {},
   onRelationshipDeleted = () => {},
+  onEdgeDoubleClicked = () => {},
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -96,12 +96,12 @@ const FlowCanvas = ({
           targetHandle: `${rel.to_column}-${rel.target_suffix}`,
           animated: false,
           type: "smoothstep",
-          markerEnd: `${rel.to_rel === 'many'? 'crowfoot': '' }`,
-          markerStart: `${rel.from_rel === 'many'? 'crowfoot-source': ''}`
+          markerEnd: `${rel.to_rel === "many" ? "crowfoot" : ""}`,
+          markerStart: `${rel.from_rel === "many" ? "crowfoot-source" : ""}`,
         };
       })
     ) || [];
-  }, []);
+  }, [relationships]);
 
   const onConnect = useCallback(
     (params) => {
@@ -156,7 +156,6 @@ const FlowCanvas = ({
   );
 
   const handleNodeDragStop = (event, node) => {
-    console.log('Node drag stopee')
     const dbTable = tables.find((table) => table.flow_id == node.id);
     if (dbTable) {
       dbTable.x_position = node.position.x;
@@ -169,10 +168,15 @@ const FlowCanvas = ({
     onNodeClicked(node.id);
   };
 
+  const handleEdgeDoubleClicked = (event, edge) => {
+    console.log("edge was double clicked", edge);
+    onEdgeDoubleClicked(edge)
+  };
+
   return (
     <section className="w-full h-full">
       <CrowfootMarker />
-      <CrowfootMarkerSource/>
+      <CrowfootMarkerSource />
 
       <ReactFlow
         nodes={nodes}
@@ -189,6 +193,7 @@ const FlowCanvas = ({
         onNodeClick={handleNodeClicked}
         zoomOnScroll={false}
         panOnScroll={true}
+        onEdgeDoubleClick={handleEdgeDoubleClicked}
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap

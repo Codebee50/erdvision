@@ -16,6 +16,11 @@ import TableContent from "@/components/diagrams/TableContent";
 import Relationship from "@/classes/relationship";
 import Messaging from "@/components/diagrams/Messaging";
 import axios from "axios";
+import DiagramHeader from "@/components/diagrams/DiagramHeader";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CardinalityChoices } from "@/constants/constants";
 
 const Page = () => {
   const { id } = useParams();
@@ -26,6 +31,8 @@ const Page = () => {
   const [selectedTable, setSelectedTable] = useState(-1);
   const [refreshFlow, setRefreshFlow] = useState(false);
   const [typeList, setTypeList] = useState([]);
+  const [edgeModalOpen, setEdgeModalOpen] = useState(false);
+  const [selectedRelationship, setSelectedRelationship] = useState(null);
 
   const [error, setError] = useState(false);
 
@@ -46,7 +53,7 @@ const Page = () => {
         source_suffix: relationship.source_suffix,
         target_suffix: relationship.target_suffix,
         from_rel: relationship.from_rel,
-        to_rel: relationship.to_rel
+        to_rel: relationship.to_rel,
       });
     });
   };
@@ -119,7 +126,6 @@ const Page = () => {
   }, []);
 
   const handleNodeClicked = (flow_id) => {
-    console.log(flow_id)
     setSelectedTable(flow_id);
   };
 
@@ -127,6 +133,7 @@ const Page = () => {
     //listens for when the table list changes and then syncs unsynced tables
     tableList.forEach((table) => {
       if (!table.synced) {
+        console.log("sync", table.name);
         table.syncObject();
       }
     });
@@ -147,13 +154,6 @@ const Page = () => {
     );
   }
 
-  const handleSyncChanges = () => {
-    toast({
-      title: "hello",
-      swipeDirection: "left",
-    });
-  };
-
   const createDatabaseTable = () => {
     /**Creates a new database table
      *
@@ -162,7 +162,6 @@ const Page = () => {
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
     const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
-    console.log('the flow', flow_id)
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,
@@ -179,35 +178,38 @@ const Page = () => {
     setTableList((prev) => {
       return [...prev, newTable];
     });
-
   };
 
-  const handleColumnPropertyChanged = async (columnId, tableId, changedProperties)=>{
-      const table = tableList.find((table)=> table.flow_id == tableId)
+  const handleColumnPropertyChanged = async (
+    columnId,
+    tableId,
+    changedProperties
+  ) => {
+    const table = tableList.find((table) => table.flow_id == tableId);
 
-      const column = table.columns.find((column)=> column.flow_id==columnId)
+    const column = table.columns.find((column) => column.flow_id == columnId);
 
-      if(column && changedProperties){
-        // Object.assign(column, changedProperties)
-        // table.syncObject()
-        setTableList(
-          tableList.map((prevTable)=> {
-            if(prevTable.flow_id == tableId){
-              prevTable.synced = false;
-              prevTable.columns = prevTable.columns.map((prevColumn)=>{
-                if(prevColumn.flow_id == columnId){
-                  Object.assign(prevColumn, changedProperties)
-                  prevColumn.synced = false;
-                }
+    if (column && changedProperties) {
+      // Object.assign(column, changedProperties)
+      // table.syncObject()
+      setTableList(
+        tableList.map((prevTable) => {
+          if (prevTable.flow_id == tableId) {
+            prevTable.synced = false;
+            prevTable.columns = prevTable.columns.map((prevColumn) => {
+              if (prevColumn.flow_id == columnId) {
+                Object.assign(prevColumn, changedProperties);
+                prevColumn.synced = false;
+              }
 
-                return prevColumn
-              })
-            }
-            return prevTable
-          })
-        )
-      }
-  }
+              return prevColumn;
+            });
+          }
+          return prevTable;
+        })
+      );
+    }
+  };
 
   const handleColumnDatatypeChanged = (columnId, tableId, newDatatype) => {
     const table = tableList.find((table) => table.flow_id == tableId);
@@ -291,7 +293,7 @@ const Page = () => {
             table_id: flow_id,
             flow_id: gen_flow_id,
             name: "new_column",
-            datatype: "varchar20",
+            datatype: typeList[0],
           });
 
           return new DbTable({
@@ -314,7 +316,9 @@ const Page = () => {
   const handleRelationshipDeleted = (deletedEdges) => {
     deletedEdges.forEach((edge) => {
       const relationship = relationships.find((rel) => rel.flow_id == edge.id);
-      relationship.deleteObject(); //delete relationship from backend
+      if (relationship) {
+        relationship.deleteObject(); //delete relationship from backend
+      }
     });
 
     setRelationships((prev) => {
@@ -325,42 +329,76 @@ const Page = () => {
     });
   };
 
+  const handleEdgeDoubleClicked = (edge) => {
+    const edgeObj = relationships.find((rel) => rel.flow_id == edge.id);
+    if (edgeObj) {
+      setSelectedRelationship(edgeObj);
+      setEdgeModalOpen(true);
+    }
+  };
+
+  const handleEdgeRadioValueChange = (value) =>{
+      const words = value.split('-')
+
+      selectedRelationship.from_rel = words[0]
+      selectedRelationship.to_rel = words[2]
+      selectedRelationship.syncObject()
+
+      console.log(words[0], words[2])
+
+      setRelationships((prev)=>{
+        return prev.map((rel)=>{
+          if(rel.flow_id == selectedRelationship.flow_id){
+            console.log('found a match')
+            rel.from_rel= words[0]
+            rel.to_rel = words[2]
+            console.log(rel)
+          }
+          return rel
+        })
+      })
+      setEdgeModalOpen(false)
+  }
+
   return (
     <AuthProtected>
       <Messaging diagramId={id} diagramName={diagram?.name} />
 
-      <section className="w-full min-h-screen relative flex flex-col">
-        <section
-          className=" w-screen h-[10vh] bg-green01 top-0 z-20 flex flex-row justify-between items-center px-6 py-2 "
-          id="diagram-header"
+      <Dialog
+        open={edgeModalOpen}
+        onClose={setEdgeModalOpen.bind(null, false)}
+        onOpenChange={setEdgeModalOpen}
+      >
+        <DialogContent
+          onInteractOutside={setEdgeModalOpen.bind(null, false)}
+          onEscapeKeyDown={setEdgeModalOpen.bind(null, false)}
+          className="w-max min-w-[300px]"
         >
-          <LogoText
-            logoColor="#7ED6DF"
-            textClassName="text-green02 font-medium text-green01"
-          />
+          <h3 className="font-bold">Select cardinality</h3>
 
-          <div>
-            <h2 className="font-semibold text-sm text-white">
-              {diagram?.name}
-            </h2>
-            <div className="flex flex-row items-center gap-2">
-              <p className="font-extralight text-sm text-mgrey100">
-                Saved 3 mins ago
-              </p>
-              <div className="w-[3px] h-[3px] bg-[#D9D9D9]"></div>
-              <p className="font-semibold text-green02 text-sm cursor-pointer">
-                Save
-              </p>
-            </div>
-          </div>
+          <form className="w-full">
+            <RadioGroup
+              defaultValue={`${selectedRelationship?.from_rel}-to-${selectedRelationship?.to_rel}`}
+              onValueChange={handleEdgeRadioValueChange}
+            >
+              {CardinalityChoices.map((choice) => {
+                return (
+                  <div
+                    className="flex items-center space-x-2"
+                    key={`choice-${choice.value}`}
+                  >
+                    <RadioGroupItem value={choice.value} id={choice.value} />
+                    <Label htmlFor={choice.value}>{choice.label}</Label>
+                  </div>
+                );
+              })}
+            </RadioGroup>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          <button className="cursor-pointer flex flex-row items-center gap-2 bg-green01 p-3 rounded-md">
-            <FiUploadCloud color="#ffffff" />
-            <p className="text-[0.8rem] text-white" onClick={handleSyncChanges}>
-              Sync changes
-            </p>
-          </button>
-        </section>
+      <section className="w-full min-h-screen relative flex flex-col">
+        <DiagramHeader diagram={diagram} />
 
         <div className="w-full flex flex-row h-[90vh]">
           <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
@@ -386,7 +424,7 @@ const Page = () => {
                       key={item.id}
                       table={item}
                       columnList={item.columns}
-                      selected={item.id == selectedTable}
+                      selected={item.flow_id == selectedTable}
                       onTableNameChanged={handleTableNameChanged}
                       onHeaderClicked={handleNodeClicked}
                       onColumnCreatedClicked={handleColumnCreated}
@@ -412,6 +450,7 @@ const Page = () => {
               relationships={relationships}
               onRelationshipCreated={handleRelationshipCreated}
               onRelationshipDeleted={handleRelationshipDeleted}
+              onEdgeDoubleClicked={handleEdgeDoubleClicked}
             />
           </div>
         </div>

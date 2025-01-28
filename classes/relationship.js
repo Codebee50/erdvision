@@ -93,5 +93,37 @@ export default class Relationship {
       const created = await this.createRelationship();
       return created;
     }
+    const url = `${baseBeUrl}/diagram/relationship/sync/${this.id}/`;
+    const syncData = {
+      from_rel: this.from_rel,
+      to_rel: this.to_rel,
+    }
+
+    try{
+      const accessToken = Cookies.get('userToken')
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      };
+
+      const response = await axios.patch(url, syncData, { headers });
+      if(response.status === 200){
+        console.log("Relationship synced successfully")
+        this.synced = true
+        return true
+      }
+      else{
+        console.log('Could not sync relationship')
+        this.synced = false;
+        return false
+        
+      }
+
+    }
+    catch(error){
+      console.log('an error occurred while syncing relationship')
+      this.synced = false;
+      return false;
+    }
   }
 }
