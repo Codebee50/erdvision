@@ -3,7 +3,6 @@ import { RiMoreFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
 import DatatypeInput from "./DatatypeInput";
 
-
 const initialState = {
   columnName: "",
   columnId: "",
@@ -30,7 +29,8 @@ const TableContent = ({
   onHeaderClicked = () => {},
   onColumnCreatedClicked = () => {},
   onColumnNameChanged = () => {},
-  onColumnDatatypeChanged = ()=>{},
+  onColumnDatatypeChanged = () => {},
+  onColumnPropertyChanged = () => {},
   typeList,
 }) => {
   const [inputValue, setInputValue] = useState(null);
@@ -70,10 +70,14 @@ const TableContent = ({
     setInputValue(e.target.value);
   };
 
-  const handleColumnDatatypeChanged= (datatype, columnId)=>{
-      console.log(datatype, columnId)
-      onColumnDatatypeChanged(columnId, table.flow_id, datatype)
-  }
+  const handleColumnDatatypeChanged = (datatype, columnId) => {
+    console.log(datatype, columnId);
+    // onColumnDatatypeChanged(columnId, table.flow_id, datatype)
+
+    onColumnPropertyChanged(columnId, table.flow_id, {
+      datatype,
+    });
+  };
   return (
     <>
       <div className="flex flex-col" key={table.flow_id}>

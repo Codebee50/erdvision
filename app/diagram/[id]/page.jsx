@@ -6,14 +6,12 @@ import { baseBeUrl } from "@/urls/be";
 import PageLoader from "@/components/PageLoader";
 import LogoText from "@/components/LogoText";
 import { FiUploadCloud } from "react-icons/fi";
-import { dummyTablesList } from "@/constants/dummy";
 import FlowCanvas from "@/components/diagrams/FlowCanvas";
 import { useToast } from "@/hooks/use-toast";
 import { IoAdd, IoAddSharp } from "react-icons/io5";
 import AuthProtected from "@/components/user/AuthProtected";
 import DbTable from "@/classes/table";
 import DbColumn from "@/classes/column";
-import { generateId } from "@/utils/functions";
 import TableContent from "@/components/diagrams/TableContent";
 import Relationship from "@/classes/relationship";
 import Messaging from "@/components/diagrams/Messaging";
@@ -47,6 +45,8 @@ const Page = () => {
         target_node_id: relationship.target_node,
         source_suffix: relationship.source_suffix,
         target_suffix: relationship.target_suffix,
+        from_rel: relationship.from_rel,
+        to_rel: relationship.to_rel
       });
     });
   };
@@ -119,10 +119,12 @@ const Page = () => {
   }, []);
 
   const handleNodeClicked = (flow_id) => {
+    console.log(flow_id)
     setSelectedTable(flow_id);
   };
 
   useEffect(() => {
+    //listens for when the table list changes and then syncs unsynced tables
     tableList.forEach((table) => {
       if (!table.synced) {
         table.syncObject();
@@ -131,7 +133,7 @@ const Page = () => {
   }, [tableList]);
 
   if (isFetchingDiagram) {
-    return <PageLoader loaderSize={60} />;
+    return <PageLoader loaderSize={70} />;
   }
 
   if (error) {
@@ -160,6 +162,7 @@ const Page = () => {
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
     const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
+    console.log('the flow', flow_id)
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,
@@ -177,8 +180,34 @@ const Page = () => {
       return [...prev, newTable];
     });
 
-    newTable.syncObject();
   };
+
+  const handleColumnPropertyChanged = async (columnId, tableId, changedProperties)=>{
+      const table = tableList.find((table)=> table.flow_id == tableId)
+
+      const column = table.columns.find((column)=> column.flow_id==columnId)
+
+      if(column && changedProperties){
+        // Object.assign(column, changedProperties)
+        // table.syncObject()
+        setTableList(
+          tableList.map((prevTable)=> {
+            if(prevTable.flow_id == tableId){
+              prevTable.synced = false;
+              prevTable.columns = prevTable.columns.map((prevColumn)=>{
+                if(prevColumn.flow_id == columnId){
+                  Object.assign(prevColumn, changedProperties)
+                  prevColumn.synced = false;
+                }
+
+                return prevColumn
+              })
+            }
+            return prevTable
+          })
+        )
+      }
+  }
 
   const handleColumnDatatypeChanged = (columnId, tableId, newDatatype) => {
     const table = tableList.find((table) => table.flow_id == tableId);
@@ -364,6 +393,7 @@ const Page = () => {
                       onColumnNameChanged={handleColumnNameChange}
                       typeList={typeList}
                       onColumnDatatypeChanged={handleColumnDatatypeChanged}
+                      onColumnPropertyChanged={handleColumnPropertyChanged}
                     />
                   );
                 })}

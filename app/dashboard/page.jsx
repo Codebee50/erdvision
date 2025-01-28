@@ -9,8 +9,7 @@ import Image from "next/image";
 import { FaRegFileAlt } from "react-icons/fa";
 import { HiMenuAlt3 } from "react-icons/hi";
 import { PiCaretDown } from "react-icons/pi";
-import { HiOutlineEye } from "react-icons/hi";
-import { RiEyeCloseLine } from "react-icons/ri";
+
 import { useRouter } from "next/navigation";
 import AuthProtected from "@/components/user/AuthProtected";
 import { useSelector } from "react-redux";
@@ -35,6 +34,7 @@ import { handleGenericError } from "@/utils/errorHandler";
 import PageLoader from "@/components/PageLoader";
 import ProfileImage from "@/components/user/ProfileImage";
 import DiagramSkeletonLoader from "@/components/diagrams/DiagramSkeletonLoader";
+import DiagramPreview from "@/components/diagrams/DiagramPreview";
 
 const Page = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -85,9 +85,11 @@ const Page = () => {
     createDiagram(formData);
   };
 
-  const handleDiagramClicked = (diagramId) => {
-    router.push(`/diagram/${diagramId}`);
-  };
+
+  const handleDiagramDeleted = (diagramId)=>{
+      setDiagramList((prevList)=>prevList.filter((item)=> item.id !== diagramId))
+  }
+
 
   useEffect(() => {
     fetchDiagrams();
@@ -200,42 +202,7 @@ const Page = () => {
             className={`w-full ${diagramsLoading?'hidden': 'grid'} grid-cols-3 gap-5 py-10 max-lg:grid-cols-2 max-herobr03:grid-cols-1`}
           >
             {diagramList.map((item) => (
-              <div
-                key={item.name}
-                className="w-full h-[300px] bg-mgrey200 rounded-md relative p-8 cursor-pointer hover:shadow-xl hover:shadow-mgrey100 transition-shadow"
-                onClick={handleDiagramClicked.bind(null, item.id)}
-              >
-                <div className="w-[150px] h-[150px] bg-[#FCA311] opacity-5 rounded-full absolute bottom-5 right-5"></div>
-
-                <div className="w-full h-full z-10 flex flex-col">
-                  <h3 className="text-green01 font-semibold text-xl">
-                    {item.name}
-                  </h3>
-                  <p className="mt-3 font-light max-sm:text-sm">
-                    {item.description}
-                  </p>
-
-                  <div className="w-full self-end flex flex-row items-center justify-between mt-auto flex-wrap gap-2">
-                    <p className="font-medium">{item?.objects || 0} Diagrams</p>
-
-                    <div className="flex flex-row items-center gap-2">
-                      {item.visibility === "public" ? (
-                        <HiOutlineEye className="text-green01 font-medium">
-                          Public
-                        </HiOutlineEye>
-                      ) : (
-                        <RiEyeCloseLine className="text-red-600 font-medium">
-                          Private
-                        </RiEyeCloseLine>
-                      )}
-
-                      <p>{item.visibility}</p>
-                    </div>
-
-                    {/* <p>Created {item.created_at}</p> */}
-                  </div>
-                </div>
-              </div>
+              <DiagramPreview key={item.name} diagram={item} onDiagramDeleted={handleDiagramDeleted}/>
             ))}
           </div>
         )}

@@ -15,6 +15,8 @@ export default class Relationship {
     target_node_id,
     source_suffix,
     target_suffix,
+    from_rel = 'one',
+    to_rel = 'one'
   }) {
     this.from_column = from_column;
     this.to_column = to_column;
@@ -27,6 +29,8 @@ export default class Relationship {
     this.target_node_id = target_node_id;
     this.source_suffix = source_suffix;
     this.target_suffix = target_suffix;
+    this.from_rel = from_rel,
+    this.to_rel = to_rel
   }
 
   async createRelationship() {
@@ -37,6 +41,8 @@ export default class Relationship {
       source_suffice: this.source_suffix,
       target_suffix: this.target_suffix,
       rel_type: this.rel_type,
+      from_rel: this.from_rel,
+      to_rel: this.to_rel
     };
 
     try {

@@ -95,21 +95,21 @@ function Page(props) {
                         id='password-input'
                     />
 
-                    <div className={'w-full flex items-end justify-end mt-5'}>
+                    {/* <div className={'w-full flex items-end justify-end mt-5'}>
                         <Link href={"/auth/password/reset"} className={'text-green02 font-semibold'}>Forgot
                             password?</Link>
-                    </div>
+                    </div> */}
                     <LoadableButton isLoading={loading} label='Submit'/>
-                    <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
+                    {/* <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
                         <div className={'w-[60px] h-[1px] bg-[#D9D9D9]'}></div>
                         <p className={'text-[#565656]'}>OR</p>
                         <div className={'w-[60px] h-[1px] bg-[#D9D9D9]'}></div>
-                    </div>
+                    </div> */}
 
-                    <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
+                    {/* <div className={'flex flex-row items-center justify-center mt-5 gap-5'}>
                         <SocialButton title={"Google"} image={google.src}/>
                         <SocialButton title={"Github"} image={github.src}/>
-                    </div>
+                    </div> */}
 
                     <p className={'self-center justify-self-center mt-3'}>Dont have an account? <a
                         href={'/auth/signup/'} className={'text-blue_dark font-bold'}>Sign up</a></p>
