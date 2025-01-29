@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import useFetchRequest from "@/hooks/useFetch";
 import { baseBeUrl } from "@/urls/be";
 import PageLoader from "@/components/PageLoader";
@@ -21,6 +21,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CardinalityChoices } from "@/constants/constants";
+import { useSelector } from "react-redux";
 
 const Page = () => {
   const { id } = useParams();
@@ -33,6 +34,13 @@ const Page = () => {
   const [typeList, setTypeList] = useState([]);
   const [edgeModalOpen, setEdgeModalOpen] = useState(false);
   const [selectedRelationship, setSelectedRelationship] = useState(null);
+
+  const searchParams = useSearchParams();
+  const readOnly = searchParams.get("readonly") == "true";
+
+  const { userToken } = useSelector((state) => state.auth);
+
+  const [socket, setSocket] = useState(null);
 
   const [error, setError] = useState(false);
 
@@ -130,14 +138,30 @@ const Page = () => {
   };
 
   useEffect(() => {
-    //listens for when the table list changes and then syncs unsynced tables
-    tableList.forEach((table) => {
-      if (!table.synced) {
-        console.log("sync", table.name);
-        table.syncObject();
-      }
-    });
+    if (!readOnly) {
+      //listens for when the table list changes and then syncs unsynced tables
+      tableList.forEach((table) => {
+        if (!table.synced) {
+          table.syncObject();
+        }
+      });
+    }
   }, [tableList]);
+
+  
+  useEffect(() => {
+    const websocket = new WebSocket(
+      `${baseBeUrl}/ws/diagram/collaborate/?token=${userToken}&did=${id}`
+    );
+    websocket.onopen = () => {
+      console.log("collaboration websocket connected");
+    };
+
+    setSocket(websocket);
+    return () => {
+      websocket.close();
+    };
+  }, []);
 
   if (isFetchingDiagram) {
     return <PageLoader loaderSize={70} />;
@@ -337,28 +361,24 @@ const Page = () => {
     }
   };
 
-  const handleEdgeRadioValueChange = (value) =>{
-      const words = value.split('-')
+  const handleEdgeRadioValueChange = (value) => {
+    const words = value.split("-");
 
-      selectedRelationship.from_rel = words[0]
-      selectedRelationship.to_rel = words[2]
-      selectedRelationship.syncObject()
+    selectedRelationship.from_rel = words[0];
+    selectedRelationship.to_rel = words[2];
+    selectedRelationship.syncObject();
 
-      console.log(words[0], words[2])
-
-      setRelationships((prev)=>{
-        return prev.map((rel)=>{
-          if(rel.flow_id == selectedRelationship.flow_id){
-            console.log('found a match')
-            rel.from_rel= words[0]
-            rel.to_rel = words[2]
-            console.log(rel)
-          }
-          return rel
-        })
-      })
-      setEdgeModalOpen(false)
-  }
+    setRelationships((prev) => {
+      return prev.map((rel) => {
+        if (rel.flow_id == selectedRelationship.flow_id) {
+          rel.from_rel = words[0];
+          rel.to_rel = words[2];
+        }
+        return rel;
+      });
+    });
+    setEdgeModalOpen(false);
+  };
 
   return (
     <AuthProtected>
@@ -398,6 +418,8 @@ const Page = () => {
       </Dialog>
 
       <section className="w-full min-h-screen relative flex flex-col">
+        <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
+
         <DiagramHeader diagram={diagram} />
 
         <div className="w-full flex flex-row h-[90vh]">

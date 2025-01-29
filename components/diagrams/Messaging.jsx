@@ -61,6 +61,7 @@ const Messaging = ({ diagramId, diagramName }) => {
         messageContainer.current.scrollHeight;
     }
   }, [messagesOpen, chatMessages]);
+
   useEffect(() => {
     const websocket = new WebSocket(
       `${baseBeUrl}/ws/diagram/chat/${diagramId}/?token=${userToken}&did=${diagramId}`
@@ -146,7 +147,7 @@ const Messaging = ({ diagramId, diagramName }) => {
   };
 
   return (
-    <section className="absolute bottom-0 right-0 z-10">
+    <section className="absolute bottom-0 right-0 z-30">
       <Popover className="" onOpenChange={(open) => handlePopoverOpen(open)}>
         <PopoverTrigger>
           <div className="p-2 bg-white">
