@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CardinalityChoices } from "@/constants/constants";
 import { useSelector } from "react-redux";
+import { WriteSocket } from "@/classes/socketManger";
 
 const Page = () => {
   const { id } = useParams();
@@ -34,17 +35,16 @@ const Page = () => {
   const [typeList, setTypeList] = useState([]);
   const [edgeModalOpen, setEdgeModalOpen] = useState(false);
   const [selectedRelationship, setSelectedRelationship] = useState(null);
+  const scrollRef = useRef(null)
 
   const searchParams = useSearchParams();
   const readOnly = searchParams.get("readonly") == "true";
 
-  const { userToken } = useSelector((state) => state.auth);
+  const { userToken, userInfo } = useSelector((state) => state.auth);
 
   const [socket, setSocket] = useState(null);
 
   const [error, setError] = useState(false);
-
-  const { toast } = useToast();
 
   const transformRelationships = (relationships) => {
     return relationships.map((relationship) => {
@@ -148,6 +148,75 @@ const Page = () => {
     }
   }, [tableList]);
 
+  const wsTableCreated = (tableData) => {
+    const newTable = new DbTable({
+      diagram: id,
+      flow_id: tableData.id,
+      name: tableData.name,
+      id: tableData.id,
+      columns: [],
+      x_position: tableData.x_position,
+      y_position: tableData.y_position,
+      created: tableData.created,
+      synced: tableData.synced,
+    });
+
+    setTableList((prev) => [...prev, newTable]);
+  };
+
+  const wsTableChanged = (changedData) => {
+    setTableList((prevList) => {
+      return prevList.map((prevTable) => {
+        if (prevTable.id == changedData.table_id) {
+          Object.assign(prevTable, changedData.table);
+          prevTable.synced = true;
+        }
+        return prevTable;
+      });
+    });
+  };
+
+  const wsColumnCreated = (columnData) => {
+    setTableList((prevList) =>
+      prevList.map((table) => {
+        if (table.id == columnData.table_id) {
+          const newColumn = new DbColumn({
+            id: columnData.id,
+            table_id: columnData.table_id,
+            flow_id: columnData.id,
+            name: columnData.name,
+            datatype: columnData.datatype,
+          });
+
+          return new DbTable({
+            ...table,
+            columns: [...(table.columns || []), newColumn],
+          });
+        }
+        return table;
+      })
+    );
+  };
+
+  const wsColumnPropertyChanged = (columnData) => {
+    const column = columnData.column;
+    setTableList((prevList) =>
+      prevList.map((table) => {
+        if (table.id == column.db_table) {
+          table.columns = table.columns.map((prevColumn) => {
+            if (prevColumn.flow_id == column.id) {
+              Object.assign(prevColumn, column);
+            }
+            return prevColumn;
+          });
+        }
+        return table;
+      })
+    );
+  };
+
+  const wsRelationshipCreated = () => {};
+
   useEffect(() => {
     const websocket = new WebSocket(
       `${baseBeUrl}/ws/diagram/collaborate/?token=${userToken}&did=${id}`
@@ -156,11 +225,35 @@ const Page = () => {
       console.log("collaboration websocket connected");
     };
 
+    websocket.onmessage = (event) => {
+      const body = JSON.parse(event.data);
+      console.log("received", body);
+      if (body.sender_id !== userInfo?.id && userInfo?.id) {
+        if (body.action == "TABLE_CREATED") {
+          wsTableCreated(body);
+        }
+
+        if (body.action == "TABLE_CHANGED") {
+          wsTableChanged(body);
+        }
+
+        if (body.action == "COLUMN_CREATED") {
+          wsColumnCreated(body);
+        }
+
+        if (body.action == "COLUMN_CHANGED") {
+          wsColumnPropertyChanged(body);
+        }
+      }
+    };
+
     setSocket(websocket);
+    WriteSocket.setSocket(readOnly ? null : websocket);
+
     return () => {
       websocket.close();
     };
-  }, []);
+  }, [userInfo?.id]);
 
   if (isFetchingDiagram) {
     return <PageLoader loaderSize={70} />;
@@ -177,7 +270,6 @@ const Page = () => {
     );
   }
 
-
   const createDatabaseTable = () => {
     /**Creates a new database table
      *
@@ -186,7 +278,6 @@ const Page = () => {
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
     const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
-    DbTable.setSocket(socket);
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,

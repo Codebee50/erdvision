@@ -1,6 +1,7 @@
 import { baseBeUrl } from "@/urls/be";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { WriteSocket } from "./socketManger";
 
 export default class DbColumn {
   constructor({
@@ -24,7 +25,7 @@ export default class DbColumn {
     this.is_unique = is_unique;
     this.synced = synced;
     this.created = created;
-    this.flow_id = flow_id
+    this.flow_id = flow_id;
   }
   async createColumn() {
     const url = `${baseBeUrl}/diagram/column/create/`;
@@ -46,7 +47,21 @@ export default class DbColumn {
         this.id = response.data.id;
         this.synced = true;
         this.created = true;
-        console.log('Column created successfully')
+
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "COLUMN_CREATED",
+              table_id: response.data.db_table,
+              name: response.data.name,
+              datatype: response.data.datatype,
+              id: response.data.id,
+            })
+          );
+        }
+
+        console.log("Column created successfully");
         return true;
       } else {
         console.log("An error occurred while creating the db column", response);
@@ -63,43 +78,52 @@ export default class DbColumn {
   }
 
   async syncObject() {
-    console.log('syncing column')
-    if (!this.created) {// this means table has not yet been created
+    console.log("syncing column");
+    if (!this.created) {
+      // this means table has not yet been created
       return await this.createColumn();
     }
 
-    const url = `${baseBeUrl}/diagram/column/sync/${this.id}/`
+    const url = `${baseBeUrl}/diagram/column/sync/${this.id}/`;
     const syncData = {
       name: this.name,
       datatype: this.datatype,
       is_primary_key: this.is_primary_key,
       is_nullable: this.is_nullable,
       is_unique: this.is_unique,
-    }
+    };
 
     try {
-      const accessToken = Cookies.get('userToken')
+      const accessToken = Cookies.get("userToken");
       const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`
-    }
-    const response = await axios.patch(url, syncData, {headers})
-    if(response.status === 200){
-      this.synced = true
-      console.log('Column synced successfully')
-      return true
-    }else{
-      console.log('An error occurred while syncing the column')
-      this.synced = false
-      return false
-    }
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const response = await axios.patch(url, syncData, { headers });
+      if (response.status === 200) {
+        this.synced = true;
+        console.log("syncing col");
 
-  }catch(error){
-    console.log('An error occurred while syncing the column', error)
-    this.synced = false
-    return false
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "COLUMN_CHANGED",
+              column: response.data,
+            })
+          );
+        }
+        console.log("Column synced successfully");
+        return true;
+      } else {
+        console.log("An error occurred while syncing the column");
+        this.synced = false;
+        return false;
+      }
+    } catch (error) {
+      console.log("An error occurred while syncing the column", error);
+      this.synced = false;
+      return false;
+    }
   }
-  
-}
-
 }

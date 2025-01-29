@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useReducer } from "react";
+import React, { useEffect, useState, useReducer, useRef } from "react";
 import { RiMoreFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
 import DatatypeInput from "./DatatypeInput";
@@ -11,7 +11,6 @@ const initialState = {
 function columnChangedReducer(state, action) {
   switch (action.type) {
     case "COLUMN_NAME_CHANGED":
-      console.log("payload", action.payload, state);
       return {
         ...state,
         ...action.payload,
@@ -39,6 +38,8 @@ const TableContent = ({
     initialState
   );
 
+  const containerRef = useRef(null);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputValue && inputValue !== "") {
@@ -52,7 +53,7 @@ const TableContent = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       onColumnNameChanged(column.columnId, table.flow_id, column.columnName);
-    }, 600);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [column.columnName]);
@@ -71,16 +72,23 @@ const TableContent = ({
   };
 
   const handleColumnDatatypeChanged = (datatype, columnId) => {
-    console.log(datatype, columnId);
-    // onColumnDatatypeChanged(columnId, table.flow_id, datatype)
-
     onColumnPropertyChanged(columnId, table.flow_id, {
       datatype,
     });
   };
+
+  useEffect(() => {
+    console.log(selected, containerRef?.current);
+    if (selected && containerRef?.current) {
+      containerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selected]);
   return (
     <>
-      <div className="flex flex-col" key={table.flow_id}>
+      <div className="flex flex-col" key={table.flow_id} ref={containerRef}>
         <div
           onClick={onHeaderClicked.bind(null, table.flow_id)}
           className="p-2 flex flex-row items-center justify-between cursor-pointer bg-[#F8FAFF] hover:bg-mgrey100 transition-all"
