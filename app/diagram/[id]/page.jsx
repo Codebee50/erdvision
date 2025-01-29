@@ -148,7 +148,6 @@ const Page = () => {
     }
   }, [tableList]);
 
-  
   useEffect(() => {
     const websocket = new WebSocket(
       `${baseBeUrl}/ws/diagram/collaborate/?token=${userToken}&did=${id}`
@@ -178,6 +177,7 @@ const Page = () => {
     );
   }
 
+
   const createDatabaseTable = () => {
     /**Creates a new database table
      *
@@ -186,6 +186,7 @@ const Page = () => {
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
     const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
+    DbTable.setSocket(socket);
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,
@@ -418,7 +419,9 @@ const Page = () => {
       </Dialog>
 
       <section className="w-full min-h-screen relative flex flex-col">
-        <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
+        {readOnly && (
+          <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
+        )}
 
         <DiagramHeader diagram={diagram} />
 

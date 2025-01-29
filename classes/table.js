@@ -73,11 +73,20 @@ export default class DbTable {
     });
   }
 
+  static setSocket(socket){
+    this.socket=socket
+  }
+
+  static getSocket(){
+    return this.socket
+  }
+
   /** Ensure the frontend is consistent with the backend */
   async syncObject() {
     if (!this.created) {
       const created = await this.createTable();
       this.syncColumns()
+
       return created;
     }
 
