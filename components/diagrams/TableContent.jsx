@@ -2,6 +2,7 @@ import React, { useEffect, useState, useReducer, useRef } from "react";
 import { RiMoreFill } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
 import DatatypeInput from "./DatatypeInput";
+import { toast } from "@/hooks/use-toast";
 
 const initialState = {
   columnName: "",
@@ -74,6 +75,25 @@ const TableContent = ({
   const handleColumnDatatypeChanged = (datatype, columnId) => {
     onColumnPropertyChanged(columnId, table.flow_id, {
       datatype,
+    });
+  };
+
+  const handleSetColumnPrimaryKey = (columnId, isPrimaryKey = true) => {
+    onColumnPropertyChanged(columnId, table.flow_id, {
+      is_primary_key: isPrimaryKey,
+    });
+  };
+
+  const handleSetColumnNullable = (column, isNullable = true) => {
+    if (column.is_primary_key && isNullable) {
+      toast({
+        description: "Cannot make a primary key field nullable",
+        variant: "destructive",
+      });
+      return
+    }
+    onColumnPropertyChanged(column.flow_id, table.flow_id, {
+      is_nullable: isNullable,
     });
   };
 
@@ -153,8 +173,19 @@ const TableContent = ({
                     <div
                       className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
                       title="Primary key"
+                      onClick={handleSetColumnPrimaryKey.bind(
+                        null,
+                        column.flow_id,
+                        !column.is_primary_key
+                      )}
                     >
-                      <p className="text-blue01 text-[0.8rem] font-semibold">
+                      <p
+                        className={`${
+                          column.is_primary_key
+                            ? "text-blue01"
+                            : "text-[#474747] "
+                        } text-[0.8rem] font-semibold`}
+                      >
                         PK
                       </p>
                     </div>
@@ -162,8 +193,17 @@ const TableContent = ({
                     <div
                       className="p-2 hover:bg-mgrey100 cursor-pointer transition-all ease-in-out rounded-sm"
                       title="Nullable"
+                      onClick={handleSetColumnNullable.bind(
+                        null,
+                        column,
+                        !column.is_nullable
+                      )}
                     >
-                      <p className="text-[#474747] font-semibold text-[0.8rem]">
+                      <p
+                        className={`${
+                          column.is_nullable ? "text-blue01" : "text-[#474747]"
+                        } font-semibold text-[0.8rem]`}
+                      >
                         N
                       </p>
                     </div>

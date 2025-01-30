@@ -44,6 +44,7 @@ export default class DbColumn {
 
       const response = await axios.post(url, columnData, { headers });
       if (response.status === 201 || response.status === 200) {
+        console.log('created id', response.data.id)
         this.id = response.data.id;
         this.synced = true;
         this.created = true;
@@ -102,7 +103,6 @@ export default class DbColumn {
       const response = await axios.patch(url, syncData, { headers });
       if (response.status === 200) {
         this.synced = true;
-        console.log("syncing col");
 
         const socket = WriteSocket.getSocket();
         if (socket) {

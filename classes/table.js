@@ -89,6 +89,32 @@ export default class DbTable {
     });
   }
 
+  async deleteObject() {
+    const url = `${baseBeUrl}/diagram/table/delete/${this.id}/`;
+    try {
+      const accessToken = Cookies.get("userToken");
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const response = await axios.delete(url, { headers });
+      if (response.status === 204) {
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "TABLE_DELETED",
+              id: this.id,
+            })
+          );
+        }
+        console.log("table deleted successfully");
+      }
+    } catch (error) {
+      console.log("Failed to delete table");
+    }
+  }
+
   /** Ensure the frontend is consistent with the backend */
   async syncObject() {
     if (!this.created) {

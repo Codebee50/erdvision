@@ -35,7 +35,7 @@ const Page = () => {
   const [typeList, setTypeList] = useState([]);
   const [edgeModalOpen, setEdgeModalOpen] = useState(false);
   const [selectedRelationship, setSelectedRelationship] = useState(null);
-  const scrollRef = useRef(null)
+  const [members, setMembers] = useState([]);
 
   const searchParams = useSearchParams();
   const readOnly = searchParams.get("readonly") == "true";
@@ -129,8 +129,21 @@ const Page = () => {
       }
     );
 
+  const { mutate: fetchDiagramMembers } = useFetchRequest(
+    `${baseBeUrl}/diagram/members/${id}/`,
+    (response) => {
+      setMembers(response.data.data);
+    },
+    (error) => {
+      toast({
+        description: "Failed to fetch collaborators",
+      });
+    }
+  );
+
   useEffect(() => {
     fetchDiagram();
+    fetchDiagramMembers();
   }, []);
 
   const handleNodeClicked = (flow_id) => {
@@ -215,7 +228,47 @@ const Page = () => {
     );
   };
 
-  const wsRelationshipCreated = () => {};
+  const wsTableDeleted = (tableData) => {
+    setTableList((prev) => prev.filter((table) => table.id !== tableData.id));
+  };
+
+  const wsRelationshipCreated = (data) => {
+    const relationship = new Relationship({
+      from_column: data.from_column,
+      to_column: data.to_column,
+      flow_id: data.id,
+      id: data.id,
+      rel_type: data.rel_type,
+      synced: true,
+      created: true,
+      source_node_id: data.source_node,
+      target_node_id: data.target_node,
+      source_suffix: data.source_suffix,
+      target_suffix: data.target_suffix,
+      from_rel: data.from_rel,
+      to_rel: data.to_rel,
+    });
+
+    setRelationships((prev) => [...prev, relationship]);
+  };
+
+  const wsRelationshipModified = (changedData) => {
+    setRelationships((prev) =>
+      prev.map((rel) => {
+        if (rel.flow_id == changedData.id) {
+          rel.from_rel = changedData.from_rel;
+          rel.to_rel = changedData.to_rel;
+        }
+        return rel;
+      })
+    );
+  };
+
+  const wsRelationshipDeleted = (data) => {
+    setRelationships((prev) => {
+      return prev.filter((rel) => rel.id !== data.id);
+    });
+  };
 
   useEffect(() => {
     const websocket = new WebSocket(
@@ -243,6 +296,22 @@ const Page = () => {
 
         if (body.action == "COLUMN_CHANGED") {
           wsColumnPropertyChanged(body);
+        }
+
+        if (body.action == "RELATIONSHIP_CREATED") {
+          wsRelationshipCreated(body.relationship);
+        }
+
+        if (body.action == "RELATIONSHIP_UPDATED") {
+          wsRelationshipModified(body);
+        }
+
+        if (body.action == "RELATIONSHIP_DELETED") {
+          wsRelationshipDeleted(body);
+        }
+
+        if (body.action == "TABLE_DELETED") {
+          wsTableDeleted(body);
         }
       }
     };
@@ -306,8 +375,6 @@ const Page = () => {
     const column = table.columns.find((column) => column.flow_id == columnId);
 
     if (column && changedProperties) {
-      // Object.assign(column, changedProperties)
-      // table.syncObject()
       setTableList(
         tableList.map((prevTable) => {
           if (prevTable.flow_id == tableId) {
@@ -440,9 +507,26 @@ const Page = () => {
     setRelationships((prev) => {
       return prev.filter(
         (rel) =>
-          !deletedEdges.some((deletedEdge) => deletedEdge.id === rel.flow_id)
+          !deletedEdges.some((deletedEdge) => deletedEdge.id == rel.flow_id)
       );
     });
+  };
+
+  const handleTablesDeleted = (deletedTables) => {
+    const deletedTableIds = new Set(
+      deletedTables.map((table) => parseInt(table.id))
+    );
+
+    deletedTables.forEach((deletedTable) => {
+      const table = tableList.find((item) => item.flow_id == deletedTable.id);
+      if (table) {
+        table.deleteObject();
+      }
+    });
+
+    setTableList((prev) =>
+      prev.filter((table) => !deletedTableIds.has(table.flow_id))
+    );
   };
 
   const handleEdgeDoubleClicked = (edge) => {
@@ -514,7 +598,7 @@ const Page = () => {
           <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
         )}
 
-        <DiagramHeader diagram={diagram} />
+        <DiagramHeader diagram={diagram} members={members} />
 
         <div className="w-full flex flex-row h-[90vh]">
           <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
@@ -567,6 +651,7 @@ const Page = () => {
               onRelationshipCreated={handleRelationshipCreated}
               onRelationshipDeleted={handleRelationshipDeleted}
               onEdgeDoubleClicked={handleEdgeDoubleClicked}
+              onTableDeleted={handleTablesDeleted}
             />
           </div>
         </div>
