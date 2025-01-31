@@ -4,6 +4,8 @@ import { ReactQueryProvider } from "./ReactQueryProvider";
 import { Toaster } from "@/components/ui/toaster";
 import StoreProvider from "./StoreProvider";
 import Header from "@/components/Header";
+import { Suspense } from "react";
+import PageLoader from "@/components/PageLoader";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -30,8 +32,8 @@ export default function RootLayout({ children }) {
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
           >
             <Header />
-            <Toaster/>
-            {children}
+            <Toaster />
+            <Suspense fallback={<PageLoader />}>{children}</Suspense>
           </body>
         </html>
       </StoreProvider>

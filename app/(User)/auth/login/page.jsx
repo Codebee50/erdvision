@@ -19,6 +19,7 @@ import userImage from "@/public/images/user.png";
 import { useSearchParams } from 'next/navigation';
 
 
+
 function Page(props) {
     const {loading, userInfo, error, success, isAuthenticated} = useSelector((state)=> state.auth)
 
