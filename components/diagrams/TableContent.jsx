@@ -90,7 +90,7 @@ const TableContent = ({
         description: "Cannot make a primary key field nullable",
         variant: "destructive",
       });
-      return
+      return;
     }
     onColumnPropertyChanged(column.flow_id, table.flow_id, {
       is_nullable: isNullable,
@@ -98,7 +98,6 @@ const TableContent = ({
   };
 
   useEffect(() => {
-    console.log(selected, containerRef?.current);
     if (selected && containerRef?.current) {
       containerRef.current.scrollIntoView({
         behavior: "smooth",

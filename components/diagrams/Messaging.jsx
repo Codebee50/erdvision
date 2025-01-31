@@ -147,11 +147,11 @@ const Messaging = ({ diagramId, diagramName }) => {
   };
 
   return (
-    <section className="absolute bottom-0 right-0 z-30">
+    <div >
       <Popover className="" onOpenChange={(open) => handlePopoverOpen(open)}>
         <PopoverTrigger>
-          <div className="p-2 bg-white">
-            <div className="bg-white cursor-pointer rounded-md flex flex-row items-center gap-2 p-2 border border-[#878787] m-2 relative">
+          <div className="">
+            <div className="bg-white cursor-pointer rounded-md flex flex-row items-center gap-2 p-2 border border-[#878787] relative">
               <div className="relative">
                 <BiMessageRounded color="#878787" />
 
@@ -229,7 +229,7 @@ const Messaging = ({ diagramId, diagramName }) => {
           </div>
         </PopoverContent>
       </Popover>
-    </section>
+    </div>
   );
 };
 

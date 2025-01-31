@@ -163,6 +163,7 @@ const DiagramHeader = ({ diagram, members = [] }) => {
                     image={member.user?.profile_picture}
                     rounded={true}
                     className="w-[25px] h-[25px] rounded-full object-cover object-center border border-green01"
+                    key={`avatar-${member.user?.id}`}
                   />
                 );
               })}
@@ -229,7 +230,7 @@ const DiagramHeader = ({ diagram, members = [] }) => {
               </div>
               {members.map((member) => {
                 return (
-                  <div className="flex flex-row items-center gap-3">
+                  <div className="flex flex-row items-center gap-3" key={`maga-${member.user.id}`}>
                     <UserImage
                       image={member?.user?.profile_picture}
                       rounded={true}

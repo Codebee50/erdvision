@@ -23,6 +23,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CardinalityChoices } from "@/constants/constants";
 import { useSelector } from "react-redux";
 import { WriteSocket } from "@/classes/socketManger";
+import AccessControl from "@/components/diagrams/AccessControl";
+import { Writer } from "@/classes/writerConfig";
 
 const Page = () => {
   const { id } = useParams();
@@ -38,7 +40,9 @@ const Page = () => {
   const [members, setMembers] = useState([]);
 
   const searchParams = useSearchParams();
-  const readOnly = searchParams.get("readonly") == "true";
+
+  const [readOnly, setReadOnly] = useState(true);
+  const [writer, setWriter] = useState(null);
 
   const { userToken, userInfo } = useSelector((state) => state.auth);
 
@@ -122,6 +126,17 @@ const Page = () => {
           transformRelationships(response?.data?.relationships || [])
         );
 
+        const writer = response.data.writer;
+        if (writer) {
+          setReadOnly(!(writer.id == userInfo?.id));
+          setWriter(new Writer(writer.id, writer.email));
+        } else {
+          setReadOnly(!(response.data?.creator?.id == userInfo?.id));
+          setWriter(
+            new Writer(response.data.creator.id, response.data.creator.email)
+          );
+        }
+        console.log(writer, readOnly);
         getDataTypes(response.data.database_type);
       },
       (error) => {
@@ -160,6 +175,11 @@ const Page = () => {
       });
     }
   }, [tableList]);
+
+  const handleWriterChanged = (newWriter) => {
+    setReadOnly(!(newWriter.id == userInfo?.id));
+    setWriter(newWriter);
+  };
 
   const wsTableCreated = (tableData) => {
     const newTable = new DbTable({
@@ -322,7 +342,7 @@ const Page = () => {
     return () => {
       websocket.close();
     };
-  }, [userInfo?.id]);
+  }, [userInfo?.id, readOnly]);
 
   if (isFetchingDiagram) {
     return <PageLoader loaderSize={70} />;
@@ -558,7 +578,10 @@ const Page = () => {
 
   return (
     <AuthProtected>
-      <Messaging diagramId={id} diagramName={diagram?.name} />
+      <section className="absolute bottom-0 right-0 z-30 p-3 bg-white flex flex-row items-center gap-2">
+        <Messaging diagramId={id} diagramName={diagram?.name} />
+        <AccessControl diagram={diagram} writer={writer} onWriterChanged={handleWriterChanged} />
+      </section>
 
       <Dialog
         open={edgeModalOpen}
