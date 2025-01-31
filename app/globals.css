@@ -1,18 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
-
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
+}
+
+.grid-section {
+  display: grid;
+  gap: 5px;
+  width: 100vw;
+  height: 100vh;
+  padding: 0.5rem;
+  background-color: #0f1b2b; 
+}
+
+.grid-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.grid-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 @layer utilities {
+  .padding-x {
+    @apply px-8 herobr01:px-20;
+  }
+
+  .dot-grid-background {
+    background-color: #ffffff;
+    background-image: radial-gradient(#ccc 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    background-color: red;
+    display: none;
+  }
+
   .text-balance {
     text-wrap: balance;
   }
+
+  .background-animate-text {
+    background: radial-gradient(circle, rgb(4, 188, 74), #db9864);
+    animation: textbganimate 7s linear infinite;
+    background-size: 200% 200%;
+    background-clip: text;
+    fill: transparent;
+    color: transparent;
+  }
+
 }
 
 @layer base {
@@ -54,6 +103,8 @@ body {
     --primary-foreground: 0 0% 9%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
+    /*  */
+    /*  */
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
     --accent: 0 0% 14.9%;

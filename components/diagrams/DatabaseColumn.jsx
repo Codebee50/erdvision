@@ -1,0 +1,37 @@
+import React from "react";
+import { Handle, Position } from "@xyflow/react";
+
+
+const DatabaseColumn = ({column}) => {
+
+  const getJsonId = (prefix)=>{
+    // return JSON.stringify({
+    //   id: column.id,
+    //   prefix: prefix,
+    // })
+
+    return `${column.id}-${prefix}`
+  }
+
+  return (
+    /**
+     * lt = left target 
+     * ls = left source 
+     * rt = right target 
+     * rs = right source 
+     */
+    <div className="relative ">
+      <Handle type="target" position={Position.Left} isConnectable={true} id={getJsonId('lt')}/>
+      <Handle type="source" position={Position.Left} isConnectable={true} id={getJsonId('ls')} />
+
+      <div className="w-full h-[33px] bg-white flex flex-row items-center justify-between py-2 px-4 hover:bg-mgrey200 cursor-pointer">
+        <p className="text-[#565656] text-[0.7rem]">{column?.name}</p>
+        <p className="text-green02 text-[0.7rem]">{column?.datatype}</p>
+      </div>
+      <Handle type="source" position={Position.Right} isConnectable={true} id={getJsonId("rs")}/>
+      <Handle type="target" position={Position.Right} isConnectable={true} id={getJsonId('rt')}/>
+    </div>
+  );
+};
+
+export default DatabaseColumn;
