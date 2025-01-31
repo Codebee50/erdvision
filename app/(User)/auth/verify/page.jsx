@@ -19,6 +19,9 @@ import { REGEXP_ONLY_DIGITS } from "input-otp";
 import useGetResponseMessage from "@/hooks/useGetResponseMessage";
 import Loader from "@/components/Loader";
 import { handleGenericError } from "@/utils/errorHandler";
+import { Suspense } from 'react';
+import PageLoader from "@/components/PageLoader";
+
 
 const Page = () => {
   const postRequest = usePostRequest();
@@ -89,7 +92,7 @@ const Page = () => {
   };
 
   return (
-    <>
+    <Suspense fallback={<PageLoader/>}>
       <Head>
         <title>Verify your account</title>
         <meta name="description" content="Description of my page" />
@@ -142,7 +145,7 @@ const Page = () => {
           </form>
         </div>
       </section>
-    </>
+    </Suspense>
   );
 };
 
