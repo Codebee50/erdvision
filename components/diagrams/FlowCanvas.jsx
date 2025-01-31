@@ -37,6 +37,7 @@ const FlowCanvas = ({
   onRelationshipCreated = () => {},
   onRelationshipDeleted = () => {},
   onEdgeDoubleClicked = () => {},
+  onTableDeleted = () => {},
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -46,13 +47,15 @@ const FlowCanvas = ({
     const onChange = (event) => {
       setNodes((nds) =>
         nds.map((node) => {
-          if (node.id !== "2") {
-            return node;
-          }
+          // if (node.id !== "2") {
+          //   return node;
+          // }
 
           const color = event.target.value;
 
           setBgColor(color);
+
+          console.log("change");
 
           return {
             ...node,
@@ -155,6 +158,18 @@ const FlowCanvas = ({
     [onEdgesChange]
   );
 
+  const handleNodesChange = useCallback(
+    (changes) => {
+      const deletedTables = changes.filter((change) => change.type == "remove");
+      if (deletedTables.length > 0) {
+        onTableDeleted(deletedTables);
+      }
+
+      onNodesChange(changes);
+    },
+    [onNodesChange]
+  );
+
   const handleNodeDragStop = (event, node) => {
     const dbTable = tables.find((table) => table.flow_id == node.id);
     if (dbTable) {
@@ -169,8 +184,7 @@ const FlowCanvas = ({
   };
 
   const handleEdgeDoubleClicked = (event, edge) => {
-    console.log("edge was double clicked", edge);
-    onEdgeDoubleClicked(edge)
+    onEdgeDoubleClicked(edge);
   };
 
   return (
@@ -181,7 +195,7 @@ const FlowCanvas = ({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}

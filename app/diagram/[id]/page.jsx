@@ -22,6 +22,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CardinalityChoices } from "@/constants/constants";
 import { useSelector } from "react-redux";
+import { WriteSocket } from "@/classes/socketManger";
+import AccessControl from "@/components/diagrams/AccessControl";
+import { Writer } from "@/classes/writerConfig";
 
 const Page = () => {
   const { id } = useParams();
@@ -34,17 +37,18 @@ const Page = () => {
   const [typeList, setTypeList] = useState([]);
   const [edgeModalOpen, setEdgeModalOpen] = useState(false);
   const [selectedRelationship, setSelectedRelationship] = useState(null);
+  const [members, setMembers] = useState([]);
 
   const searchParams = useSearchParams();
-  const readOnly = searchParams.get("readonly") == "true";
 
-  const { userToken } = useSelector((state) => state.auth);
+  const [readOnly, setReadOnly] = useState(true);
+  const [writer, setWriter] = useState(null);
+
+  const { userToken, userInfo } = useSelector((state) => state.auth);
 
   const [socket, setSocket] = useState(null);
 
   const [error, setError] = useState(false);
-
-  const { toast } = useToast();
 
   const transformRelationships = (relationships) => {
     return relationships.map((relationship) => {
@@ -122,6 +126,17 @@ const Page = () => {
           transformRelationships(response?.data?.relationships || [])
         );
 
+        const writer = response.data.writer;
+        if (writer) {
+          setReadOnly(!(writer.id == userInfo?.id));
+          setWriter(new Writer(writer.id, writer.email));
+        } else {
+          setReadOnly(!(response.data?.creator?.id == userInfo?.id));
+          setWriter(
+            new Writer(response.data.creator.id, response.data.creator.email)
+          );
+        }
+        console.log(writer, readOnly);
         getDataTypes(response.data.database_type);
       },
       (error) => {
@@ -129,8 +144,21 @@ const Page = () => {
       }
     );
 
+  const { mutate: fetchDiagramMembers } = useFetchRequest(
+    `${baseBeUrl}/diagram/members/${id}/`,
+    (response) => {
+      setMembers(response.data.data);
+    },
+    (error) => {
+      toast({
+        description: "Failed to fetch collaborators",
+      });
+    }
+  );
+
   useEffect(() => {
     fetchDiagram();
+    fetchDiagramMembers();
   }, []);
 
   const handleNodeClicked = (flow_id) => {
@@ -148,6 +176,120 @@ const Page = () => {
     }
   }, [tableList]);
 
+  const handleWriterChanged = (newWriter) => {
+    setReadOnly(!(newWriter.id == userInfo?.id));
+    setWriter(newWriter);
+  };
+
+  const wsTableCreated = (tableData) => {
+    const newTable = new DbTable({
+      diagram: id,
+      flow_id: tableData.id,
+      name: tableData.name,
+      id: tableData.id,
+      columns: [],
+      x_position: tableData.x_position,
+      y_position: tableData.y_position,
+      created: tableData.created,
+      synced: tableData.synced,
+    });
+
+    setTableList((prev) => [...prev, newTable]);
+  };
+
+  const wsTableChanged = (changedData) => {
+    setTableList((prevList) => {
+      return prevList.map((prevTable) => {
+        if (prevTable.id == changedData.table_id) {
+          Object.assign(prevTable, changedData.table);
+          prevTable.synced = true;
+        }
+        return prevTable;
+      });
+    });
+  };
+
+  const wsColumnCreated = (columnData) => {
+    setTableList((prevList) =>
+      prevList.map((table) => {
+        if (table.id == columnData.table_id) {
+          const newColumn = new DbColumn({
+            id: columnData.id,
+            table_id: columnData.table_id,
+            flow_id: columnData.id,
+            name: columnData.name,
+            datatype: columnData.datatype,
+          });
+
+          return new DbTable({
+            ...table,
+            columns: [...(table.columns || []), newColumn],
+          });
+        }
+        return table;
+      })
+    );
+  };
+
+  const wsColumnPropertyChanged = (columnData) => {
+    const column = columnData.column;
+    setTableList((prevList) =>
+      prevList.map((table) => {
+        if (table.id == column.db_table) {
+          table.columns = table.columns.map((prevColumn) => {
+            if (prevColumn.flow_id == column.id) {
+              Object.assign(prevColumn, column);
+            }
+            return prevColumn;
+          });
+        }
+        return table;
+      })
+    );
+  };
+
+  const wsTableDeleted = (tableData) => {
+    setTableList((prev) => prev.filter((table) => table.id !== tableData.id));
+  };
+
+  const wsRelationshipCreated = (data) => {
+    const relationship = new Relationship({
+      from_column: data.from_column,
+      to_column: data.to_column,
+      flow_id: data.id,
+      id: data.id,
+      rel_type: data.rel_type,
+      synced: true,
+      created: true,
+      source_node_id: data.source_node,
+      target_node_id: data.target_node,
+      source_suffix: data.source_suffix,
+      target_suffix: data.target_suffix,
+      from_rel: data.from_rel,
+      to_rel: data.to_rel,
+    });
+
+    setRelationships((prev) => [...prev, relationship]);
+  };
+
+  const wsRelationshipModified = (changedData) => {
+    setRelationships((prev) =>
+      prev.map((rel) => {
+        if (rel.flow_id == changedData.id) {
+          rel.from_rel = changedData.from_rel;
+          rel.to_rel = changedData.to_rel;
+        }
+        return rel;
+      })
+    );
+  };
+
+  const wsRelationshipDeleted = (data) => {
+    setRelationships((prev) => {
+      return prev.filter((rel) => rel.id !== data.id);
+    });
+  };
+
   useEffect(() => {
     const websocket = new WebSocket(
       `${baseBeUrl}/ws/diagram/collaborate/?token=${userToken}&did=${id}`
@@ -156,11 +298,51 @@ const Page = () => {
       console.log("collaboration websocket connected");
     };
 
+    websocket.onmessage = (event) => {
+      const body = JSON.parse(event.data);
+      console.log("received", body);
+      if (body.sender_id !== userInfo?.id && userInfo?.id) {
+        if (body.action == "TABLE_CREATED") {
+          wsTableCreated(body);
+        }
+
+        if (body.action == "TABLE_CHANGED") {
+          wsTableChanged(body);
+        }
+
+        if (body.action == "COLUMN_CREATED") {
+          wsColumnCreated(body);
+        }
+
+        if (body.action == "COLUMN_CHANGED") {
+          wsColumnPropertyChanged(body);
+        }
+
+        if (body.action == "RELATIONSHIP_CREATED") {
+          wsRelationshipCreated(body.relationship);
+        }
+
+        if (body.action == "RELATIONSHIP_UPDATED") {
+          wsRelationshipModified(body);
+        }
+
+        if (body.action == "RELATIONSHIP_DELETED") {
+          wsRelationshipDeleted(body);
+        }
+
+        if (body.action == "TABLE_DELETED") {
+          wsTableDeleted(body);
+        }
+      }
+    };
+
     setSocket(websocket);
+    WriteSocket.setSocket(readOnly ? null : websocket);
+
     return () => {
       websocket.close();
     };
-  }, []);
+  }, [userInfo?.id, readOnly]);
 
   if (isFetchingDiagram) {
     return <PageLoader loaderSize={70} />;
@@ -177,7 +359,6 @@ const Page = () => {
     );
   }
 
-
   const createDatabaseTable = () => {
     /**Creates a new database table
      *
@@ -186,7 +367,6 @@ const Page = () => {
      * when the table is fetched from the db, the flow id now becomes the id generated from the backend
      */
     const flow_id = Math.max(0, ...tableList.map((table) => table.flow_id)) + 1;
-    DbTable.setSocket(socket);
     // const newTable = new DbTable(id, flow_id, "New table", flow_id, [], 0, 0, false, false)
     const newTable = new DbTable({
       diagram: id,
@@ -215,8 +395,6 @@ const Page = () => {
     const column = table.columns.find((column) => column.flow_id == columnId);
 
     if (column && changedProperties) {
-      // Object.assign(column, changedProperties)
-      // table.syncObject()
       setTableList(
         tableList.map((prevTable) => {
           if (prevTable.flow_id == tableId) {
@@ -349,9 +527,26 @@ const Page = () => {
     setRelationships((prev) => {
       return prev.filter(
         (rel) =>
-          !deletedEdges.some((deletedEdge) => deletedEdge.id === rel.flow_id)
+          !deletedEdges.some((deletedEdge) => deletedEdge.id == rel.flow_id)
       );
     });
+  };
+
+  const handleTablesDeleted = (deletedTables) => {
+    const deletedTableIds = new Set(
+      deletedTables.map((table) => parseInt(table.id))
+    );
+
+    deletedTables.forEach((deletedTable) => {
+      const table = tableList.find((item) => item.flow_id == deletedTable.id);
+      if (table) {
+        table.deleteObject();
+      }
+    });
+
+    setTableList((prev) =>
+      prev.filter((table) => !deletedTableIds.has(table.flow_id))
+    );
   };
 
   const handleEdgeDoubleClicked = (edge) => {
@@ -383,7 +578,10 @@ const Page = () => {
 
   return (
     <AuthProtected>
-      <Messaging diagramId={id} diagramName={diagram?.name} />
+      <section className="absolute bottom-0 right-0 z-30 p-3 bg-white flex flex-row items-center gap-2">
+        <Messaging diagramId={id} diagramName={diagram?.name} />
+        <AccessControl diagram={diagram} writer={writer} onWriterChanged={handleWriterChanged} />
+      </section>
 
       <Dialog
         open={edgeModalOpen}
@@ -423,7 +621,7 @@ const Page = () => {
           <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
         )}
 
-        <DiagramHeader diagram={diagram} />
+        <DiagramHeader diagram={diagram} members={members} />
 
         <div className="w-full flex flex-row h-[90vh]">
           <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
@@ -476,6 +674,7 @@ const Page = () => {
               onRelationshipCreated={handleRelationshipCreated}
               onRelationshipDeleted={handleRelationshipDeleted}
               onEdgeDoubleClicked={handleEdgeDoubleClicked}
+              onTableDeleted={handleTablesDeleted}
             />
           </div>
         </div>

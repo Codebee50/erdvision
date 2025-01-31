@@ -2,6 +2,7 @@ import axios from "axios";
 import { baseBeUrl } from "@/urls/be";
 import Cookies from "js-cookie";
 import SyncResponse from "./syncResponse";
+import { WriteSocket } from "./socketManger";
 
 export default class DbTable {
   constructor({
@@ -49,6 +50,21 @@ export default class DbTable {
         this.id = response.data.id;
         this.synced = true;
         this.created = true;
+
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "TABLE_CREATED",
+              id: this.id,
+              name: this.name,
+              x_position: 0,
+              y_position: 0,
+              created: true,
+              synced: true,
+            })
+          );
+        }
         console.log("Table created successfully");
         return true;
       } else {
@@ -73,19 +89,37 @@ export default class DbTable {
     });
   }
 
-  static setSocket(socket){
-    this.socket=socket
-  }
-
-  static getSocket(){
-    return this.socket
+  async deleteObject() {
+    const url = `${baseBeUrl}/diagram/table/delete/${this.id}/`;
+    try {
+      const accessToken = Cookies.get("userToken");
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const response = await axios.delete(url, { headers });
+      if (response.status === 204) {
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "TABLE_DELETED",
+              id: this.id,
+            })
+          );
+        }
+        console.log("table deleted successfully");
+      }
+    } catch (error) {
+      console.log("Failed to delete table");
+    }
   }
 
   /** Ensure the frontend is consistent with the backend */
   async syncObject() {
     if (!this.created) {
       const created = await this.createTable();
-      this.syncColumns()
+      this.syncColumns();
 
       return created;
     }
@@ -105,14 +139,31 @@ export default class DbTable {
         Authorization: `Bearer ${accessToken}`,
       };
 
-      this.syncColumns()
       const response = await axios.patch(url, syncData, { headers });
 
       if (response.status === 200) {
         this.synced = true;
+        const socket = WriteSocket.getSocket();
+        if (socket) {
+          socket.send(
+            JSON.stringify({
+              action: "TABLE_CHANGED",
+              table_id: this.id,
+
+              table: {
+                name: this.name,
+                x_position: this.x_position,
+                y_position: this.y_position,
+              },
+            })
+          );
+        }
         console.log("Table synced successfully");
+        this.syncColumns();
         return true;
       }
+
+      this.syncColumns();
     } catch (error) {
       console.log("An error occurred while syncing table", error);
       this.synced = false;
