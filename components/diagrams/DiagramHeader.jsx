@@ -14,7 +14,6 @@ import usePostRequest from "@/hooks/usePost";
 import { toast } from "@/hooks/use-toast";
 import { handleGenericError } from "@/utils/errorHandler";
 import { baseBeUrl } from "@/urls/be";
-import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
 import ShuffleLoader from "../ShuffleLoader";
 import useFetchRequest from "@/hooks/useFetch";
 import { useSelector } from "react-redux";
@@ -25,13 +24,40 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import FormInput from "../FormInput";
-import LoadableButton from "../LoadableButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Copy, Check } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const DiagramHeader = ({ diagram, members = [] }) => {
   const postRequest = usePostRequest();
   const { userInfo } = useSelector((state) => state.auth);
   const exportUrl = `${baseBeUrl}/export/script/${diagram.id}/`;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const [copied, setCopied] = useState(false);
+
   const { mutate: exportDiagramScript, isLoading: isExportingScript } =
     useFetchRequest(
       exportUrl,
@@ -84,6 +110,16 @@ const DiagramHeader = ({ diagram, members = [] }) => {
     });
   };
 
+  const handleCopy = () => {
+    const link = `${baseUrl}/diagram/${diagram?.id}/`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+
+      // Reset the copied state after a delay
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <section
       className=" w-screen h-[10vh] bg-green01 top-0 z-20 flex flex-row justify-between items-center px-6 py-2 "
@@ -120,7 +156,50 @@ const DiagramHeader = ({ diagram, members = [] }) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <MenuItem text="Share" />
+          <Dialog>
+            <DialogTrigger>
+              <MenuItem text="Share" />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Share link</DialogTitle>
+                <DialogDescription>
+                  Anyone who has this link will be able to view this.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">
+                    Link
+                  </Label>
+                  <Input
+                    id="link"
+                    defaultValue={`${baseUrl}/diagram/${diagram?.id}/`}
+                    readOnly
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="px-3"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <DialogFooter className="sm:justify-start">
+                <DialogClose asChild>
+                  <Button type="button" variant="secondary">
+                    Close
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -135,12 +214,12 @@ const DiagramHeader = ({ diagram, members = [] }) => {
         <h2 className="font-semibold text-sm text-white">{diagram?.name}</h2>
         <div className="flex flex-row items-center gap-2">
           <p className="font-extralight text-sm text-mgrey100">
-            Saved 3 mins ago
+            {diagram?.database_type}
           </p>
           <div className="w-[3px] h-[3px] bg-[#D9D9D9]"></div>
-          <p className="font-semibold text-green02 text-sm cursor-pointer">
+          {/* <p className="font-semibold text-green02 text-sm cursor-pointer">
             Save
-          </p>
+          </p> */}
         </div>
       </div>
 
@@ -230,7 +309,10 @@ const DiagramHeader = ({ diagram, members = [] }) => {
               </div>
               {members.map((member) => {
                 return (
-                  <div className="flex flex-row items-center gap-3" key={`maga-${member.user.id}`}>
+                  <div
+                    className="flex flex-row items-center gap-3"
+                    key={`maga-${member.user.id}`}
+                  >
                     <UserImage
                       image={member?.user?.profile_picture}
                       rounded={true}

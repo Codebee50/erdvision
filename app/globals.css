@@ -32,6 +32,10 @@ body {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
+.react-flow__controls {
+  z-index: 9999;
+}
+
 @layer utilities {
   .padding-x {
     @apply px-8 herobr01:px-20;
@@ -45,7 +49,6 @@ body {
   .no-scrollbar::-webkit-scrollbar {
     width: 0;
     height: 0;
-    background-color: red;
     display: none;
   }
 

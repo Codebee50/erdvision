@@ -106,12 +106,12 @@ const Page = () => {
           />
 
           <div className="flex flex-row items-center gap-8 max-sm:gap-6">
-            <div className="relative">
+            {/* <div className="relative">
               <div className="bg-red-600 absolute w-[8px] h-[8px] rounded-full z-10 right-0"></div>
               <HiOutlineBell className="w-[24px] h-[24px]" />
             </div>
 
-            <IoSettingsOutline className="w-[24px] h-[24px]" />
+            <IoSettingsOutline className="w-[24px] h-[24px]" /> */}
 
             <ProfileImage src={userInfo?.profile_picture} />
           </div>

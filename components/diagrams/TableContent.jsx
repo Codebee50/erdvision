@@ -217,9 +217,9 @@ const TableContent = ({
           </div>
 
           <div className="border-t-[0.4px] flex flex-row items-center justify-end p-2 gap-2">
-            <button className="text-sm border p-2 rounded-md hover:bg-slate-100">
+            {/* <button className="text-sm border p-2 rounded-md hover:bg-slate-100">
               Add index
-            </button>
+            </button> */}
             <button
               className="text-sm border p-2 rounded-md hover:bg-slate-100"
               onClick={onColumnCreatedClicked.bind(null, table.flow_id)}
