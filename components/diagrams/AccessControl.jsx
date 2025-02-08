@@ -132,7 +132,7 @@ const AccessControl = ({ diagram, writer, onWriterChanged = () => {} }) => {
                   Write requests:
                 </p>
 
-                {writeRequests.filter((request)=> request.email !== userInfo?.email).map((request) => {
+                {writeRequests.map((request) => {
                   console.log(request.email);
                   return (
                     <div

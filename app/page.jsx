@@ -106,7 +106,7 @@ export default function Home() {
                 alt="stars"
                 className="max-herobr04:w-[15px]"
               ></Image>
-              Trusted by over 300 users world wide
+              Trusted by users world wide
             </div>
 
             <h1 className="text-4xl herobr05:text-5xl herobr04:text-6xl max-w-[90%] herobr03:max-w-[70%] font-bold mt-[10px] text-center text-mgrey100">

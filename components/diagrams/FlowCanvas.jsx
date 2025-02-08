@@ -38,6 +38,7 @@ const FlowCanvas = ({
   onRelationshipDeleted = () => {},
   onEdgeDoubleClicked = () => {},
   onTableDeleted = () => {},
+  readOnly=true,
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -206,8 +207,14 @@ const FlowCanvas = ({
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClicked}
         zoomOnScroll={false}
-        panOnScroll={true}
+        panOnScroll={!readOnly}
         onEdgeDoubleClick={handleEdgeDoubleClicked}
+
+
+        nodesDraggable={!readOnly} 
+        nodesConnectable={!readOnly}
+        edgesConnectable={!readOnly} 
+
         // attributionPosition="bottom-left"
       >
         {/* <MiniMap
@@ -221,7 +228,7 @@ const FlowCanvas = ({
             return "#fff";
           }}
         /> */}
-        <Controls />
+        <Controls/>
         <Background />
       </ReactFlow>
     </section>

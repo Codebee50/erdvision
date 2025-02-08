@@ -580,7 +580,11 @@ const Page = () => {
     <AuthProtected>
       <section className="absolute bottom-0 right-0 z-30 p-3 bg-white flex flex-row items-center gap-2">
         <Messaging diagramId={id} diagramName={diagram?.name} />
-        <AccessControl diagram={diagram} writer={writer} onWriterChanged={handleWriterChanged} />
+        <AccessControl
+          diagram={diagram}
+          writer={writer}
+          onWriterChanged={handleWriterChanged}
+        />
       </section>
 
       <Dialog
@@ -617,52 +621,54 @@ const Page = () => {
       </Dialog>
 
       <section className="w-full min-h-screen relative flex flex-col">
-        {readOnly && (
+        {/* {readOnly && (
           <section className="w-[100vw] z-20 h-screen absolute top-0 bg-transparent "></section>
-        )}
+        )} */}
 
         <DiagramHeader diagram={diagram} members={members} />
 
         <div className="w-full flex flex-row h-[90vh]">
-          <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
-            {/* <div className="w-[60px] h-screen bg-mgrey100"></div> */}
+          {!readOnly && (
+            <section className="z-10 w-[25%] h-full top-0 bg-white flex flex-row border-r">
+              {/* <div className="w-[60px] h-screen bg-mgrey100"></div> */}
 
-            <div className="w-full bg-white flex flex-col overflow-scroll no-scrollbar">
-              <div className="w-full flex flex-row items-center justify-between p-2 text-[0.9rem] bg-[#CAF9FD]">
-                <p>({diagram?.tables?.length || 0}) Tables</p>
+              <div className="w-full bg-white flex flex-col overflow-scroll no-scrollbar">
+                <div className="w-full flex flex-row items-center justify-between p-2 text-[0.9rem] bg-[#CAF9FD]">
+                  <p>({diagram?.tables?.length || 0}) Tables</p>
 
-                <button
-                  className="p-1 hover:bg-green01 cursor-pointer transition-all ease-in-out rounded-sm"
-                  title="New table"
-                  onClick={createDatabaseTable}
-                >
-                  <IoAdd size={20} className="hover:text-green02" />
-                </button>
+                  <button
+                    className="p-1 hover:bg-green01 cursor-pointer transition-all ease-in-out rounded-sm"
+                    title="New table"
+                    onClick={createDatabaseTable}
+                  >
+                    <IoAdd size={20} className="hover:text-green02" />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2 overflow-scroll no-scrollbar">
+                  {tableList?.map((item) => {
+                    return (
+                      <TableContent
+                        key={item.id}
+                        table={item}
+                        columnList={item.columns}
+                        selected={item.flow_id == selectedTable}
+                        onTableNameChanged={handleTableNameChanged}
+                        onHeaderClicked={handleNodeClicked}
+                        onColumnCreatedClicked={handleColumnCreated}
+                        onColumnNameChanged={handleColumnNameChange}
+                        typeList={typeList}
+                        onColumnDatatypeChanged={handleColumnDatatypeChanged}
+                        onColumnPropertyChanged={handleColumnPropertyChanged}
+                      />
+                    );
+                  })}
+                </div>
               </div>
+            </section>
+          )}
 
-              <div className="flex flex-col gap-2 overflow-scroll no-scrollbar">
-                {tableList?.map((item) => {
-                  return (
-                    <TableContent
-                      key={item.id}
-                      table={item}
-                      columnList={item.columns}
-                      selected={item.flow_id == selectedTable}
-                      onTableNameChanged={handleTableNameChanged}
-                      onHeaderClicked={handleNodeClicked}
-                      onColumnCreatedClicked={handleColumnCreated}
-                      onColumnNameChanged={handleColumnNameChange}
-                      typeList={typeList}
-                      onColumnDatatypeChanged={handleColumnDatatypeChanged}
-                      onColumnPropertyChanged={handleColumnPropertyChanged}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          <div className="w-[80%] h-full">
+          <div className={`${readOnly ? "w-[100%]" : "w-[80%]"} h-full`}>
             <FlowCanvas
               diagram={diagram}
               tables={tableList}
@@ -675,6 +681,7 @@ const Page = () => {
               onRelationshipDeleted={handleRelationshipDeleted}
               onEdgeDoubleClicked={handleEdgeDoubleClicked}
               onTableDeleted={handleTablesDeleted}
+              readOnly={readOnly}
             />
           </div>
         </div>
