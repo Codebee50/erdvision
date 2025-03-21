@@ -56,10 +56,10 @@ export const navLinks = [
     title: "About",
     link: "/",
   },
-  // {
-  //   title: "Pricing",
-  //   link: "/",
-  // },
+  {
+    title: "Pricing",
+    link: "/",
+  },
   {
     title: "Contact",
     link: "/",

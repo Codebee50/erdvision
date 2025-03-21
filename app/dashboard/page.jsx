@@ -86,11 +86,11 @@ const Page = () => {
     createDiagram(formData);
   };
 
-
-  const handleDiagramDeleted = (diagramId)=>{
-      setDiagramList((prevList)=>prevList.filter((item)=> item.id !== diagramId))
-  }
-
+  const handleDiagramDeleted = (diagramId) => {
+    setDiagramList((prevList) =>
+      prevList.filter((item) => item.id !== diagramId)
+    );
+  };
 
   useEffect(() => {
     fetchDiagrams();
@@ -106,12 +106,12 @@ const Page = () => {
           />
 
           <div className="flex flex-row items-center gap-8 max-sm:gap-6">
-            {/* <div className="relative">
+            <div className="relative">
               <div className="bg-red-600 absolute w-[8px] h-[8px] rounded-full z-10 right-0"></div>
               <HiOutlineBell className="w-[24px] h-[24px]" />
             </div>
 
-            <IoSettingsOutline className="w-[24px] h-[24px]" /> */}
+            <IoSettingsOutline className="w-[24px] h-[24px]" />
 
             <ProfileImage src={userInfo?.profile_picture} />
           </div>
@@ -194,16 +194,27 @@ const Page = () => {
         <PageLoader isVisible={diagramsLoading} />
 
         {diagramList.length == 0 ? (
-          <section className={`w-full h-[50vh] ${diagramsLoading?'hidden': 'flex'} items-center justify-center`}>
-
-            <p className="font-medium text-mblack100">You have not created any diagrams</p>
+          <section
+            className={`w-full h-[50vh] ${
+              diagramsLoading ? "hidden" : "flex"
+            } items-center justify-center`}
+          >
+            <p className="font-medium text-mblack100">
+              You have not created any diagrams
+            </p>
           </section>
         ) : (
           <div
-            className={`w-full ${diagramsLoading?'hidden': 'grid'} grid-cols-3 gap-5 py-10 max-lg:grid-cols-2 max-herobr03:grid-cols-1`}
+            className={`w-full ${
+              diagramsLoading ? "hidden" : "grid"
+            } grid-cols-3 gap-5 py-10 max-lg:grid-cols-2 max-herobr03:grid-cols-1`}
           >
             {diagramList.map((item) => (
-              <DiagramPreview key={item.name} diagram={item} onDiagramDeleted={handleDiagramDeleted}/>
+              <DiagramPreview
+                key={item.name}
+                diagram={item}
+                onDiagramDeleted={handleDiagramDeleted}
+              />
             ))}
           </div>
         )}

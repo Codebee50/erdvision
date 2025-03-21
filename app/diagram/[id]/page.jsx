@@ -5,9 +5,7 @@ import useFetchRequest from "@/hooks/useFetch";
 import { baseBeUrl } from "@/urls/be";
 import PageLoader from "@/components/PageLoader";
 import LogoText from "@/components/LogoText";
-import { FiUploadCloud } from "react-icons/fi";
 import FlowCanvas from "@/components/diagrams/FlowCanvas";
-import { useToast } from "@/hooks/use-toast";
 import { IoAdd, IoAddSharp } from "react-icons/io5";
 import AuthProtected from "@/components/user/AuthProtected";
 import DbTable from "@/classes/table";
@@ -27,6 +25,8 @@ import AccessControl from "@/components/diagrams/AccessControl";
 import { Writer } from "@/classes/writerConfig";
 
 const Page = () => {
+  const { userToken, userInfo } = useSelector((state) => state.auth);
+
   const { id } = useParams();
   const [diagram, setDiagram] = useState(null);
   const [tableList, setTableList] = useState([]);
@@ -43,8 +43,6 @@ const Page = () => {
 
   const [readOnly, setReadOnly] = useState(true);
   const [writer, setWriter] = useState(null);
-
-  const { userToken, userInfo } = useSelector((state) => state.auth);
 
   const [socket, setSocket] = useState(null);
 
@@ -126,17 +124,6 @@ const Page = () => {
           transformRelationships(response?.data?.relationships || [])
         );
 
-        const writer = response.data.writer;
-        if (writer) {
-          setReadOnly(!(writer.id == userInfo?.id));
-          setWriter(new Writer(writer.id, writer.email));
-        } else {
-          setReadOnly(!(response.data?.creator?.id == userInfo?.id));
-          setWriter(
-            new Writer(response.data.creator.id, response.data.creator.email)
-          );
-        }
-        console.log(writer, readOnly);
         getDataTypes(response.data.database_type);
       },
       (error) => {
@@ -155,6 +142,23 @@ const Page = () => {
       });
     }
   );
+
+  useEffect(() => {
+    console.log("id", diagram?.creator?.id, userInfo?.id);
+    if (!diagram?.creator?.id || !userInfo?.id) return;
+
+    if (diagram) {
+      const diagramWriter = diagram?.writer;
+
+      if (diagramWriter) {
+        setReadOnly(!(diagramWriter?.id == userInfo?.id));
+        setWriter(new Writer(diagramWriter.id, diagramWriter.email));
+      } else {
+        setReadOnly(!(diagram?.creator?.id == userInfo?.id));
+        setWriter(new Writer(diagram?.creator.id, diagram?.creator.email));
+      }
+    }
+  }, [diagram?.creator?.id, userInfo?.id, diagram?.writer]);
 
   useEffect(() => {
     fetchDiagram();
