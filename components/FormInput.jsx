@@ -35,6 +35,7 @@ const FormInput = ({
         className={`bg-white p-3 border border-mgrey100 rounded-lg mt-1 ${className}`}
         placeholder={placeholder}
         required={required}
+        
       />
     );
   };

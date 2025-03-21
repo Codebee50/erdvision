@@ -42,7 +42,7 @@ function Nav(props) {
         })}
       </div>
 
-      {!isAuthenticated ? (
+      {!userInfo?.first_name ? (
         <Link
           className="bg-transparent border border-mgrey100 px-5 py-3 text-mgrey100 rounded-md text-sm font-medium max-herobr03:text-[0.7rem]"
           href="/auth/login"
